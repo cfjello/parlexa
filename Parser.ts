@@ -7,7 +7,6 @@ import { Cardinality, Expect, ExpectEntry, Logical, Matched, MatchRecord, Intern
 import { lodash as _ } from 'https://deno.land/x/deno_ts_lodash/mod.ts'
 import { ExpectMap } from "./interfaces.ts";
 
-
 export interface IIndexable<T> { [key: string]: T }
 export interface MIndexable<T> { [key: string]: RegExp | Matcher }
 
@@ -274,24 +273,10 @@ export class Parser<T>  {
           }
     }
 
-    /*
-    next(reset = false): { value: MatchRecord, done: boolean }  | MatchRecord | undefined {
-        if ( reset ) this.nextIdx = 0
-        let result 
-        if ( this.nextIdx < this.result.length ) {
-            let result: MatchRecord = this.result[this.nextIdx++]
-            return { value: result , done: result.offset >= result.ofLen } as MRecIterator
-            
-        }
-        else {
-            result = this.result[ this.result.length -1 ]
-            return { value: result , done: true }
-        }
-    }
-    */
-
-    has(tokenType: string) {
-        return tokenType.length > 0 ? true : false
+    // get an result iterator
+    getIterator() {
+        const tree = this.getParseTree()
+        return tree[Symbol.iterator]()
     }
 
     formatError(token: string , message = '' ): string {
@@ -316,7 +301,7 @@ export class Parser<T>  {
         message += `Error at line ${this.line}, col ${this.col}:\n  ${text.substring(0, text.indexOf('\n')) }\n ${messageNull}`
         return message
     }
-
+    
     reset( inputStr: string , info: Info<T> | undefined = undefined ) {
         this.input      = inputStr
         this.line       = info ? info.line : 1
@@ -441,9 +426,6 @@ export class Parser<T>  {
         const entry    = this.result.get(id)!
         entry.matched  = false
         entry.matchErr = errMsg
-        if ( this.pos > entry.offset ) {
-            let debugHook = -1
-        }
         entry.children ?? ([] as string[]).forEach( child => {
             this.failBranch(child)
         });
@@ -557,12 +539,6 @@ export class Parser<T>  {
                         if (count > this.maxCount ) this.maxCount = count
                         finalCount += count
                     }
-                    /*
-                    // Evaluation of Xor Groups
-                    if ( iMatcher.xorGroup !== undefined && iMatcher.xorGroup >= 0 ) {
-                        xorGroups[xorGroups.length -1].matched.push(match.foundToken)
-                    }
-                    */
                     prevMatched = count > 0 ? true : false
                 }   
             });

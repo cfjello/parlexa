@@ -1,4 +1,3 @@
-
 export class XorGroup {
     matched: boolean[] = []
 
@@ -77,7 +76,6 @@ export type InternMatcher = {
 
 // The internal representation within the parser
 export type ExpectMap       = { multi: Cardinality, expect:  Array<InternMatcher> }
-
 export type LexerRules      = Record<string, Matcher | RegExp >
 export type Logical         =  'xor' | 'NOP' | 'ignore'
 export type Expect<T>       = { multi?: Cardinality, expect:  Array<ExpectEntry<T>> }
@@ -86,43 +84,6 @@ export type MatchEntry<T>   = Matcher | RegExp | T | Array<Matcher | T | Cardina
 export type ParserRules<T>  = Record<string, Expect<T>>
 export type Keys<G,L>       = G | L | '__undef__' | 'unknown'
 
-
-//
-// Nearley compatible defs - probably outdated 
-//
-/*i
-export interface NearleyToken {
-    value: any;
-    [key: string]: any;
-  };
-*/ 
-// export interface NearleyLexer {
-  export interface LexerIntf {
-    reset: (chunk: string, info: any | undefined) => void;
-    // deno-lint-ignore no-explicit-any
-    next: () => any;
-    // deno-lint-ignore no-explicit-any
-    save: () => any;
-    formatError: (token: never) => string;
-    has: (tokenType: string) => boolean;
-  };
-
-//
-// Vextab Rendering
-//
-export type VextabDefaults = { 
-    quaterNoteTicks:  number, 
-    currTicks:        number,
-    currBarSize:      number,
-    currBaseUnit:     number,
-    currTempo:        number,
-    currMeter:        { counter: number, denominator: number}
-} 
-
 export interface ArgsObject {
   [key: string]: string
-}
-
-interface VextabRendering {
-    header: string[], notes: string[], text: string[]
 }
