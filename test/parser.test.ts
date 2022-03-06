@@ -29,22 +29,7 @@ Deno.test({
 })
 
 Deno.test({
-    name: '02 - Parser can fail base on missing TITLE in header', 
-    fn: () => {  
-        const titleStr = "     \nAuthor: Rolling Stones\n"
-        const parser = new Parser( LR, PR, 'reset')
-        parser.debug = false
-        parser.reset(titleStr)
-        // console.log ( `01 result size: ${parser.result.size}`)
-        assertEquals( parser.result.size, 11 )
-        // const tree = parser.getParseTree()
-    },
-    sanitizeResources: false,
-    sanitizeOps: false
-})
-
-Deno.test({
-    name: '03 - Parser can read a Form directive', 
+    name: '02 - Parser can read a Form directive', 
     fn: () => {  
         const titleStr = "\nForm:  \n  - Intro \n- Verse\n  - Verse 2\n  - Intro\n  - Verse 3\n  - Coda\n"
         const parser = new Parser( LR, PR, 'reset')
@@ -61,7 +46,7 @@ Deno.test({
 
 
 Deno.test({
-    name: '04 - Parser can read the complete sheet', 
+    name: '03 - Parser can read the complete sheet', 
     fn: () => {  
         const tree = parser.getParseTree()
         // console.log(`${JSON.stringify(tree, undefined, 2)}`)
@@ -88,7 +73,7 @@ Deno.test({
 })
 
 Deno.test({
-    name: '05 - Parser can provide a parser tree iterator', 
+    name: '04 - Parser can provide a parser tree iterator', 
     fn: () => {  
         const itor = parser.getIterator()   
         let count = 0

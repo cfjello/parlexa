@@ -260,19 +260,7 @@ export class Parser<T>  {
     }
 
     // Interface functions
-    save() {
-        return {
-            line: this.line,
-            col: this.col,
-            bol: this.bol,
-            matchPositions: this.matchPositions,
-            initState: this.initState,
-            input: this.input,
-            result: this.result,
-            nextIdx: this.nextIdx 
-          }
-    }
-
+    //
     // get an result iterator
     getIterator() {
         const tree = this.getParseTree()

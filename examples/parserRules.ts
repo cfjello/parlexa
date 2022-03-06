@@ -4,7 +4,7 @@ import LR from "./lexerRules.ts";
 //
 // User defined group-tokens for this set of parser rules
 //
-export type ParserTokens = 'reset' | 'header' | 'space' | 'form' |'allways' | 'duration' | 'chord' | 'common' | 'commonList' 
+export type ParserTokens = 'reset' | 'header' | 'space' | 'form' |'always' | 'duration' | 'chord' | 'common' | 'commonList' 
 //
 // ParserRules groups (key tokens below) are typed as the combination of the user defined  
 // ParserTokens (above) and the LexerRules instanse (LR) keys
