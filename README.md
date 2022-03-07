@@ -6,11 +6,11 @@ The algorithm is a top down recursive parser with extra bells and whistles that 
 
 ### Demo
 
-Run the `demo.ts` file found in the `/examples` directory:
+Run the demo directly from your terminal:
 ```
-deno run ./demo.ts
+deno run -A "https://deno.land/x/parlexa/examples/demo.ts"
 ```
-The `demo.ts` file looks like this:
+The demo source file, `examples/demo.ts`, file looks like this:
 ```
 import { angie } from "./angieData.ts"   // The input data
 import { Parser } from "../Parser.ts"
@@ -67,7 +67,7 @@ Lexer rules are defined that utilizes the **xregexp** deno package. This is a gr
 ```
 // @deno-types='https://deno.land/x/xregexp/types/index.d.ts'
 import XRegExp from  'https://deno.land/x/xregexp/src/index.js'
-import { LexerRules } from "../interfaces.ts";
+import { LexerRules } from 'https://deno.land/x/parlexa/mod.ts'
 const LR: LexerRules = {
     TITLE:      XRegExp( '(?<token>Title)[ \\t]*(?<colon>:)[ \\t]*(?<value>[\\p{L}0-9\\- \\t]+?)[ \\t]*(?=$|\\n)', 'xuig' ),
     AUTHOR:     XRegExp( '(?<token>Author)[ \\t]*(?<colon>:)[ \\t]*(?<value>[\\p{L}0-9\\- \\t]+?)[ \\t]*(?=$|\\n)', 'xuig' ),
@@ -179,8 +179,8 @@ In this case, when the Lexer Rule `LR.FORM` is matched, then the RHS Parser Rule
 
 First import some needed TypeScript type and a set of LexerRules:
 ```
-import { Keys, ParserRules } from "../interfaces.ts";
-import LR from "./lexerRules.ts";
+import { Keys, ParserRules } from 'https://deno.land/x/parlexa/mod.ts'
+import LR from './lexerRules.ts'
 ```
 Then define the parser group-token you need as a TypeScript type, that is the LHS non-terminal symbols to be used within the parser:
 ```
