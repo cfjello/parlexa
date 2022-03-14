@@ -224,6 +224,7 @@ export class Parser<T>  {
     // Output function
     getParseTree() {
         const res: MatchRecord[] = []
+        const unMatched = new Map<string, boolean>()
         if ( this.topNode ) {
             const maxDigits = this.maxCount.toString().length + 1
             const hk = new HierarKey(1, maxDigits)  
@@ -254,8 +255,25 @@ export class Parser<T>  {
                     res.push(node)
                     prevLevel = node.level
                 }
+                else {
+                    unMatched.set(e.id, false)
+                }
             }
         }
+
+        // Second pass to remove child references to unmatched entries
+        // deno-lint-ignore no-explicit-any
+        res.forEach( (e: any) => {
+            if ( e.children.length > 0 ) {
+                const children: string[] = []
+                e.children.forEach( (id: string) => {
+                    if ( ! unMatched.has(id) ) 
+                        children.push(id)
+                })
+                if (  e.children.length  > children.length )
+                    e.children = _.clone(children)
+            }
+        })
         return _.sortBy(res, ['ident'])
     }
 

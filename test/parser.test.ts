@@ -73,6 +73,33 @@ Deno.test({
 })
 
 Deno.test({
+    name: '03 - ParseTree has only the matched child references', 
+    fn: () => {  
+        const idMap = new Map<string,any>()
+        const tree = parser.getParseTree()
+        // console.log(`${JSON.stringify(tree, undefined, 2)}`)
+        const parsed = tree[Symbol.iterator]()
+        let p = parsed.next()
+        while ( ! p.done ) { 
+            idMap.set(p.value.id, p.value)
+            p = parsed.next()
+        } 
+        const check = tree[Symbol.iterator]()
+        let c = check.next()
+        while ( ! c.done ) { 
+            c.value.children.forEach( id => {
+                assert( idMap.has(id))
+                assert( idMap.get(id).matched ) 
+            })
+            c = check.next()
+        } 
+    },
+    sanitizeResources: false,
+    sanitizeOps: false
+})
+
+
+Deno.test({
     name: '04 - Parser can provide a parser tree iterator', 
     fn: () => {  
         const itor = parser.getIterator()   
