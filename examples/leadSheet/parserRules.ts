@@ -1,4 +1,4 @@
-import { Keys, ParserRules } from "../interfaces.ts";
+import { Keys, ParserRules } from "../../interfaces.ts";
 import LR from "./lexerRules.ts";
 
 //

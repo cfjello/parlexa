@@ -87,3 +87,5 @@ export type Keys<G,L>       = G | L | '__undef__' | 'unknown'
 export interface ArgsObject {
   [key: string]: string
 }
+
+export type unmatchedTokenType = { token: string, pos: number }
