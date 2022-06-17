@@ -55,6 +55,7 @@ export type Cardinality = `${0|1}:${(number|'m')}`
 export interface Matcher {
     match  : RegExp,
     multi? : Cardinality,
+    logic?:  Logical,
     // deno-lint-ignore no-explicit-any
     cb?    : ( e: any ) => any
 }
@@ -65,6 +66,7 @@ export type InternMatcher = {
     multi:      Cardinality, 
     logic?:     Logical,
     xorGroup?:  number,
+    xorIdx?:    number,
     ignore?:    boolean, 
     type:       string,
     regexp?:    RegExp,

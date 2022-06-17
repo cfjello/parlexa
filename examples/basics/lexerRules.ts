@@ -5,7 +5,7 @@ import { LexerRules } from "https://deno.land/x/parlexa/mod.ts";
 const LR: LexerRules = {
     IDENT:      XRegExp( '(?<value>\\p{L}[\\p{L}0-9]*)', 'xuig' ),
     INT:        XRegExp( '(?<value>[0-9]+)', 'xug' ),
-    STR:        XRegExp( '(?<value>[\'"][^\'"\\n]+[\'"])', 'xuig' ),
+    STR:        XRegExp( '[\'"](?<value>[^\'"\\n]+)[\'"]', 'xuig' ),
     LET:        XRegExp( '(?<value>let[\t ]+)', 'xug' ),
     SET:        XRegExp( '(?<value>set[\t ]+)', 'xug' ),
     EXPORT:     XRegExp( '(?<value>export)', 'xug' ),

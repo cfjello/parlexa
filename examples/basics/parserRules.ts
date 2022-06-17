@@ -43,14 +43,14 @@ export const PR: ParserRules<Keys<ParserTokens, typeof LR>> = {
         ] 
     },
     intAssign: {
-        multi: '1:1',
+        multi: '0:1',
         expect: [ 
             [LR.INT, '1:1'],
             [ 'assignEnd', '1:1' ]
         ] 
     },
     strAssign: {
-        multi: '1:1',
+        multi: '0:1',
         expect: [ 
             [LR.STR, '1:1'],
             ['assignEnd', '1:1']
@@ -58,7 +58,6 @@ export const PR: ParserRules<Keys<ParserTokens, typeof LR>> = {
     },
 
     arrElement: {
-        multi: '1:1',
         expect: [ 
             [LR.STR, '1:1', 'xor'],
             [LR.INT, '1:1', 'xor'],
@@ -67,7 +66,6 @@ export const PR: ParserRules<Keys<ParserTokens, typeof LR>> = {
     },
 
     arrListElem: {
-        multi: '0:m',
         expect: [ 
             [LR.COMMA, '1:1'],
             [ 'arrElement', '1:1'],
@@ -75,7 +73,6 @@ export const PR: ParserRules<Keys<ParserTokens, typeof LR>> = {
     },
 
     arrAssign: {
-        multi: '1:1',
         expect: [ 
             [ LR.SQB_BEGIN, '1:1'],
             ['arrElement', '1:1'],
@@ -85,7 +82,7 @@ export const PR: ParserRules<Keys<ParserTokens, typeof LR>> = {
     },
 
     rhsAssign: {
-        multi: '1:m',
+        multi: '1:1',
         expect: [ 
             ['intAssign', '1:1', 'xor'],
             ['strAssign',   '1:1', 'xor'],
@@ -100,7 +97,6 @@ export const PR: ParserRules<Keys<ParserTokens, typeof LR>> = {
             [LR.IDENT,  '1:1'],
             [LR.EQSIGN, '1:1'],
             ['rhsAssign', '1:m']
-           
         ] 
     },
         /*
