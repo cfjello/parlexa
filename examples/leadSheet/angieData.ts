@@ -36,11 +36,11 @@ _dreams we held so _close seemed to _all go up in _smoke
 |C           |F	          |G   |G
 _Let me _whisper in your e-_ar 
 |Am     |E7    |  Gsus4 G Fsus4 F        | Csus4 C
-_Angie, _Angie  _where _will it _lead us _from he-_re, 
+_Angie, _Angie  _where _will it _lead us _from he-_re, Oh
 
 Verse 3:
 |G                   |G             |Dm                 |Am
-Oh _Angie don't you _weep  all  your _kisses still taste _sweet
+_Angie don't you _weep  all  your _kisses still taste _sweet
 |C           |F               |G |G
 _I hate that _sadness in your _eyes _      But
 |Am     |E7       |  Gsus4 G Fsus4 F | Csus4 C
@@ -50,9 +50,9 @@ Coda:
 |Dm	                     |Am   |Dm                               |Am
 _Angie, I still love you _baby _Ev'ry where I look I see your _eyes
 |Dm	                            |Am    
-_There ain't a woman that comes _close to you.
+_There ain't a woman that comes _close to you. _So
    |C        F               |G
-So _come on _baby dry your _eyes         
+_come on _baby dry your _eyes. _But         
 |Am     |E7      |  Gsus4 G Fsus4 F | Csus4 C
-But _ Angie, _ Angie, _Ain't _it _good to _be a-_li-_ve
+_ Angie, _ Angie, _Ain't _it _good to _be a-_li-_ve
 `

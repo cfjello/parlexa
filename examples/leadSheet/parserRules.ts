@@ -43,8 +43,7 @@ export const PR: ParserRules<Keys<ParserTokens, typeof LR>> = {
            'common', 
             LR.SECTION,
             LR.BAR,
-            LR.TEXT,
-            LR.TEXT2,
+            LR.TEXT
         ] 
     },
     FORM: {
@@ -92,6 +91,7 @@ export const PR: ParserRules<Keys<ParserTokens, typeof LR>> = {
         ]
     },
     CHORD_NOTE: {
+        multi: '1:1',
         expect: [
             LR.CHORD_TYPE,
             LR.CHORD_EXT,

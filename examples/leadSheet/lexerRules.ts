@@ -16,18 +16,30 @@ const LR: LexerRules = {
         match: XRegExp( '(?<value0>_)(?<value>[\\p{L}0-9\\- \\t\\p{P}]+)[ \\t]*(?=$|\\n)', 'xug' ),
         // deno-lint-ignore no-explicit-any
         cb: ( e: any ) => { 
-            e.value = e.value0.trim() + e.value.trim()
-            return e
+            try {
+                e.value = e.groups.value0.trim() + e.groups.value.trim()
+                return e
+            }
+            catch(err) {
+                console.log(`${JSON.stringify(e)} got: ${err}`)
+            }
         }
     },
+    /*
     TEXT2:   { 
         match: XRegExp( '(?<value0>[\\p{L}0-9\\- \\t\\p{P}]+?_)(?<value>[\\p{L}0-9\\- \\t\\p{P}]+)[ \\t]*(?=$|\\n)', 'xug' ),
         // deno-lint-ignore no-explicit-any
         cb: ( e: any ) => { 
-            e.value = e.value0.trim() + e.value.trim()
-            return e
+            try {
+                e.value = e.value0.trim() + e.value.trim()
+                return e
+            }
+            catch(err) {
+                console.log(`${JSON.stringify(e)} got: ${err}`)
+            }
         }
-    },        
+    },  
+    */      
     NL:     XRegExp('(?<value>[\\n\\r]+?)', 'g'), 
     WS:     XRegExp('(?<value>[ \\t]+)', 'g'),
     KEY:    XRegExp( '(?<token>Key)[ \\t]*:[ \\t]*(?<note>[A|B|C|D|E|F|G|a|b|c|d|e|f|g])(?<sh_fl>[#|b]{0,1})[ \\t]*(?<mode>Major|Minor)[ \\t]*(?=,|\\]|$|\\n)', 'xig' ),

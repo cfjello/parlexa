@@ -2,8 +2,6 @@ import { assert, assertEquals } from "https://deno.land/std/testing/asserts.ts";
 import { Parser } from "../Parser.ts";
 import  LR  from "../examples/tsTypes/lexerRules.ts"
 import  PR  from "../examples/tsTypes/parserRules.ts"
-import { MatchRecord } from "../interfaces.ts";
-// export interface PIndexable { [key: string]: any }
 
 export interface IIndexable<T> { [key: string]: T }
 
@@ -245,7 +243,7 @@ Deno.test({
     fn: () => {  
         const typeStr = `
         export type ChordType = { 
-            init:       boolean
+            init:       boolean,
             // checks:     Map<string, () => boolean>, 
             note:       NoteEntry, 
             sharpFlat:  string, 

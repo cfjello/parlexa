@@ -12,6 +12,7 @@ export interface PIndexable { [key: string]: any }
 //const parser = new Parser( LR, PR, 'reset')
 // parser.debug = false
 // parser.reset(angie)
+let debugDummy = 'Dummy'
 
 Deno.test({
     name: '01 - Parser can read a header Title and Auther', 
@@ -20,10 +21,10 @@ Deno.test({
         const parser = new Parser( LR, PR, 'reset')
         parser.debug = false
         parser.reset(titleStr)
-        assertEquals( parser.result.size, 11 )
+        assert( parser.result.size >= 11 )
         const tree = parser.getParseTree()
         // console.log(`${JSON.stringify(tree, undefined, 2)}`)
-        assertEquals( tree.length, 8 )
+        assert( tree.length >= 8 )
     },
     sanitizeResources: false,
     sanitizeOps: false
@@ -77,11 +78,13 @@ Deno.test({
     sanitizeOps: false
 })
 */
+
 Deno.test({
     name: '03 - ParseTree has only the matched child references', 
     fn: () => {  
         const idMap = new Map<string,any>()
         const parser = new Parser( LR, PR, 'reset')
+        // Note: this test wil fail if debug is set to true
         parser.debug = false
         parser.reset(angie)
         const tree = parser.getParseTree()
@@ -97,7 +100,7 @@ Deno.test({
         while ( ! c.done ) { 
             c.value.children.forEach( id => {
                 assert( idMap.has(id))
-                assert( idMap.get(id).matched ) 
+                assert( idMap.get(id).matched, `idMap got: ${JSON.stringify(idMap.get(id))}` ) 
             })
             c = check.next()
         } 

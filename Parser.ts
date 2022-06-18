@@ -376,17 +376,29 @@ export class Parser<T>  {
         return ( this.pos >= this.input.length )
     }
 
-    setMatchPos( matchType: string, pos: number) {
-        let count = this.matchPositions.get( matchType)?.get(pos) ?? 1
-        if ( ! this.matchPositions.has(matchType) ) {
-            this.matchPositions.set( matchType, new Map<number,number>() )
+    setMatchPos( matchToken: string, pos: number) {
+
+        if ( (matchToken ?? 'undefined') === 'undefined' || matchToken === '' ) {
+            // force a stack trace
+            throw Error( `setMatchPos() got an undefined token name` )
         }
-        this.matchPositions.get( matchType)!.set(pos, ++count)
+        let count = this.matchPositions.get( matchToken)?.get(pos) ?? 1
+        if ( ! this.matchPositions.has(matchToken) ) {
+            this.matchPositions.set( matchToken, new Map<number,number>() )
+        }    
+        this.matchPositions.get( matchToken)!.set(pos, ++count)
     }
 
-    alreadyMatched( matchType: string, pos: number): boolean {
-        if ( this.matchPositions.has(matchType) ) {
-            return this.matchPositions.get( matchType )!.has(pos)
+    alreadyMatched( matchToken: string, pos: number): boolean {
+        if ( (matchToken ?? 'undefined') === 'undefined' || matchToken === '' ) {
+            //const dummy = ''.substring(0,5)
+            throw new Error(`alreadyMatched() got an undefined token name: '${matchToken}'`)
+        }
+        if ( this.matchPositions.has(matchToken) ) {
+            if ( this.debug && matchToken  === 'BAR_T' ) {
+                console.log(`alreadyMatched: '${this.matchPositions.get( matchToken )!.get(pos)}' matched at ${pos}` )
+            }
+            return this.matchPositions.get( matchToken )!.has(pos)
         }
         return false
     }
@@ -420,18 +432,17 @@ export class Parser<T>  {
             return ret
         }
         if ( this.debug && this.result.get(parentId)!.value !== this.always ) {
-            console.log(`${this.getIndent(level)}TRY: ${this.result.get(parentId)!.value}(${level}).${iMatcher.key} at ${this.pos} against: "${this.input.substring(this.pos,this.pos + 30).replace(/\n.*/mg, '')}"`)
+            console.log(`${this.getIndent(level+1)}TRY: ${this.result.get(parentId)!.value}(${level}).${iMatcher.key} at ${this.pos} against: "${this.input.substring(this.pos,this.pos + 30).replace(/\n.*/mg, '')}"`)
         }
         // Run the iMatcher RegExp 
         const res: XRegExp.ExecArray | null = XRegExp.exec(this.input, iMatcher.regexp!, this.pos, 'sticky' )
         const lastPos = this.pos
-
-        // if it exists, run the callback function on the result 
-        if ( iMatcher.cb !== undefined ) iMatcher.cb(res)
-        this.setMatchPos(iMatcher.key, this.pos )
+        this.setMatchPos( iMatcher.key, this.pos )
        
         if ( res !== null ) {
-            if ( this.debug ) console.log(`${this.getIndent(level)}MATCHED: ${iMatcher.key} at pos: ${this.pos} to ${iMatcher.regexp!.lastIndex}, matched: "${this.input.substring(this.pos,iMatcher.regexp!.lastIndex)}"`)
+            // if it exists, run the callback function on the result 
+            if ( iMatcher.cb !== undefined ) iMatcher.cb(res)
+            if ( this.debug ) console.log(`${this.getIndent(level+1)}MATCHED: ${iMatcher.key} at pos: ${this.pos} to ${iMatcher.regexp!.lastIndex}, matched: "${this.input.substring(this.pos,iMatcher.regexp!.lastIndex)}"`)
             // Handle position and line numbering
             this.col = this.pos - this.bol + 1
             if ( iMatcher.key === 'NL' ) {
@@ -465,11 +476,11 @@ export class Parser<T>  {
             }
 
             // check for and call callback 
-            const outObjFinal =  iMatcher.cb !== undefined ? iMatcher.cb(outObj): outObj
+            // const outObjFinal =  iMatcher.cb !== undefined ? iMatcher.cb(outObj): outObj
 
             // Store the result 
             if ( ! iMatcher.ignore ) {
-                this.result.set( id, outObjFinal)
+                this.result.set( id, outObj)
                 if (  this.result.get(iMatcher.parent ?? '-1.-1') ) this.result.get(iMatcher.parent!)!.matched = true
             }
             else {
@@ -507,34 +518,52 @@ export class Parser<T>  {
     }
 
     failBranch( id: string, errMsg = '', level: number) {
-        const entry    = this.result.get(id)! as MatchRecord
-        entry.matched  = false
-        entry.matchErr = errMsg
-        entry.children ?? ([] as string[]).forEach( child => {
-            this.failBranch(child, '', level)
-        });
-        // Remember match position
-        // this.unmatched.set( `${entry.token}(${level})`, entry.offset)
-        /* 
-        if ( this.alreadyMatched( this.always, entry.offset ) ) {
-            this.matchPositions.get(this.always)?.delete(entry.offset)
-        }
-        */
-        this.setMatchPos( `${entry.token}`, entry.offset)
+        try {
+            assert(id !== 'undefined',  `failBranch() got an 'id': ${id}`) 
+            const entry    = this.result.get(id)! as MatchRecord
+            assert( entry !== undefined,  `failBranch() got an undefined result entry`)
+            if ( this.debug ) { `${this.getIndent(level)}failBranch(${id}) match entry: ${JSON.stringify(entry)}`}
+            entry.matched  = false
+            entry.matchErr = errMsg
+            entry.children ?? ([] as string[]).forEach( child => {
+                this.failBranch(child, '', level)
+            });
+            // Remember match position
+            // this.unmatched.set( `${entry.token}(${level})`, entry.offset)
+            /* 
+            if ( this.alreadyMatched( this.always, entry.offset ) ) {
+                this.matchPositions.get(this.always)?.delete(entry.offset)
+            }
+            */
+            const name = entry.type === 'Token' ? entry.value : entry.value
+            assert(name ?? 'undefined' !== 'undefined',  `failBranch() got an 'undefined' token name ${JSON.stringify(entry)}`) 
+            this.setMatchPos(name as string, entry.offset)
 
-        // Adjust the overall match position
-        if ( this.debug ) console.log(`${this.getIndent(level)}PR Skip ${entry.value}(${level}) adjust pos ${this.pos} to ${entry.offset} --> ${errMsg}`)
-        this.pos = entry.offset
+            // Adjust the overall match position
+            if ( this.debug ) console.log(`${this.getIndent(level)}PR Skip ${entry.value}(${level}) adjust pos ${this.pos} to ${entry.offset} --> ${errMsg}`)
+            this.pos = entry.offset
+        }
+        catch( err ) {
+            console.log(err)
+        }
     }
 
     // Main Parser function
     parse ( token: T, parentId: string | undefined = undefined, level = 1, roundTrips = 1): boolean {
-        assert( this.PRMap.has( token as unknown as string ), `Unknown parser token: ${token}`)
+        if ( (token ?? 'undefined') === 'undefined' ) {
+            throw new Error(`Parse(): Undefined parser token: '${token}'`)
+        } 
+        if ( ! this.PRMap.has( token + '' ) ) {
+            throw Error(`Parse(): Unknown parser token: '${token}'`)
+        } 
         if  ( this.EOF() ) {
             if ( this.debug ) console.log(`${this.getIndent(level)}Parse Skip ${token}(${level}) at ${this.pos} due to EOF `)
             return false
         }
-        if ( token + '' !== this.always && this.alreadyMatched( token + '', this.pos ) ) {
+        if ( 
+            token + '' !== this.always && 
+            this.alreadyMatched( token + '_T', this.pos ) 
+        ) {
             if ( this.debug  && token + '' !== this.always ) console.log(`${this.getIndent(level)}Parse Skip ${token}(${level}) at ${this.pos} (tried already)`)
             return false
         }
@@ -549,10 +578,11 @@ export class Parser<T>  {
         let childFailed = false
         
         if ( this.debug  && token + '' !== this.always ) {
-            console.log(`${this.getIndent(level)}PARSE: ${ token + '' === this.prevToken ? 'retry ' : ''}${token}(${level})`)
+            console.log(`${this.getIndent(level)}PARSE: ${ token + '_T' === this.prevToken ? 'retry ' : ''}${token}(${level})`)
         }
-        this.prevToken = token + ''
+        this.prevToken = token + '_T'
        
+        const goingInPos        = this.pos
         let   lastPos           = this.pos 
         let   xorGroupActive    = false
         let   xorGroupWasActive = false
@@ -588,6 +618,8 @@ export class Parser<T>  {
         // Do the matches of an expect group
         //
         eMap.expect.every( ( iMatcher: InternMatcher, i: number ) => {  
+            assert( iMatcher !== undefined, `eMap.expect.every(): Undefined iMatcher in 'expect array'`)
+            assert( iMatcher.key !== undefined || iMatcher.key !== 'undefined', `eMap.expect.every(): Undefined iMatcher.type in 'expect array'`)
             const [min, max] = this.getMulti( iMatcher.multi )
             
             // XOR Handling
@@ -618,7 +650,7 @@ export class Parser<T>  {
             // Handle iMathcer has already been matched
             if ( this.alreadyMatched( iMatcher.key, this.pos ) ) {
                 if ( this.debug  && token + '' !== this.always )  {
-                    console.log(`${this.getIndent(level)}LR Skip ${token}.${iMatcher.key}(${level}) at ${this.pos} (tried already)`)
+                    console.log(`${this.getIndent(level+1)}LR Skip ${token}.${iMatcher.key}(${level}) at ${this.pos} (tried already)`)
                 }
                 if ( min > 0 &&           // symbol or pattern is mandatory
                      ! xorGroupActive &&  // we are not dealing with an xor grouping that must be evaluated later
@@ -633,7 +665,7 @@ export class Parser<T>  {
                 // Handle parser non-regexp grouping symbols by doing a recursive call
                 if ( iMatcher.regexp === undefined ) {  
                     // Do a recursive call or a match if the match entry is a user defined token 
-                    childFailed = this.parse( iMatcher.key as unknown as T, id, level + 1 )
+                    childFailed = this.parse( iMatcher.key as unknown as T, id, level + 1, roundTrips + 1 )
                     //
                     // If mandatory child Failed 
                     if ( childFailed ) {    // Child failed
@@ -661,12 +693,14 @@ export class Parser<T>  {
                     do {
                         // Handling White space/ newline entries
                         if ( token !== always ) { 
+                            let alwaysPos: number 
                             do {
-                                lastPos = lastPos < this.pos ? this.pos : lastPos
-                                this.parse( always, id, level +1 )
+                                alwaysPos = this.pos
+                                this.parse( always, id, level )
                                 tokenMatchRec.offset = this.pos
                             }
-                            while( this.pos > lastPos )
+                            while( this.pos > alwaysPos )
+                            if ( this.pos > alwaysPos ) this.result.get(id)!.offset = this.pos
                             lastPos = lastPos < this.pos ? this.pos : lastPos
                         }    
 
@@ -718,8 +752,8 @@ export class Parser<T>  {
                                     break
                             }
                         }
-                        this.setMatchPos(iMatcher.key, lastPos )
-                        lastPos = lastPos < this.pos ? this.pos : lastPos
+                        this.setMatchPos(iMatcher.key + token + '', lastPos )
+                        // lastPos = lastPos < this.pos ? this.pos : lastPos
                     } while ( match.foundToken && count < max && !failBranch && ! this.EOF() )
 
                     /*
@@ -751,7 +785,6 @@ export class Parser<T>  {
                     
                 } 
             }
-            
             return !failBranch 
         });
 
@@ -789,22 +822,23 @@ export class Parser<T>  {
             const matchObj = this.result.get( id )! 
             matchObj.children!.forEach( (_id: string)  =>  {
                 const mr = this.result.get( _id)! 
-                if ( mr.matched ) {
+                if ( mr && mr.matched ) {
                     matchObj.matched = true
                 }
             })
         }
-        
-        this.setMatchPos(token + '', lastPos)
-        if  (                           // When to retry the same match pattern
-              this.pos > lastPos &&     // we have progress
-              ! failBranch &&           // the branch did not fail
-              roundTrips + 1 <= pMax &&     // we are below the allowed maximum number of matches
-              ! this.EOF()              // and not at EOF
+
+        this.setMatchPos(token + '_T', goingInPos)
+
+        if  (                            // When to retry the same match pattern
+              this.pos > goingInPos &&   // we have progress
+              ! failBranch &&            // the branch did not fail
+              roundTrips + 1 <= pMax &&  // we are below the allowed maximum number of matches
+              ! this.EOF()               // and not at EOF
             ) {
             // Retry the same token for more matches 
-            if ( this.debug ) console.log(`${this.getIndent(level)}PARSE RETRY: ${token}`)
-            this.parse( token, id, level +1, roundTrips + 1 )
+            if ( this.debug ) console.log(`${this.getIndent(level)}PARSE RETRY token: ${token}`)
+            this.parse( token, id, level, roundTrips + 1 )
         }
       
         if ( firstSymbol && this.pos < this.input.length ) 

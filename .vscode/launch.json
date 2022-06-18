@@ -28,7 +28,6 @@
                 "test", 
                 "--inspect-brk",  
                 "-A", 
-                "--unstable", 
                 "${file}"
             ],
             "attachSimplePort": 9229
