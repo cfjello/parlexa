@@ -2,8 +2,6 @@ import { assert, assertEquals } from "https://deno.land/std/testing/asserts.ts";
 import { Parser } from "../Parser.ts";
 import  LR  from "../examples/basics/lexerRules.ts"
 import { PR } from "../examples/basics/parserRules.ts"
-// export interface PIndexable { [key: string]: any }
-
 
 Deno.test({
     name: '01 - Parsing an int assignment', 
@@ -14,7 +12,6 @@ Deno.test({
         parser.reset(input)
         assert( parser.result.size >= 18 )
         const tree = parser.getParseTree()
-        // console.log(`${JSON.stringify(tree, undefined, 2)}`)
         assert( tree.length >= 10 )
     },
     sanitizeResources: false,
@@ -32,18 +29,15 @@ Deno.test({
         assert( parser.result.size > 10 )
         const tree = parser.getParseTree()
         const matcher = tree.filter( v => v.type === 'IDENT' )
-        // console.log(`${JSON.stringify(tree, undefined, 2)}`)
         assert( matcher.length > 0  )
         assertEquals( matcher[0].value, 'øæå')
         const matcher2 = tree.filter( v => v.type === 'STR' )
-        // console.log(`${JSON.stringify(tree, undefined, 2)}`)
         assert( matcher2.length > 0  )
         assertEquals( matcher2[0].value, 'I am a string')
     },
     sanitizeResources: false,
     sanitizeOps: false
 })
-
 
 Deno.test({
     name: '03 - Parsing an array assignment', 
@@ -54,7 +48,6 @@ Deno.test({
         parser.reset(input)
         assert( parser.result.size >  40)
         const tree = parser.getParseTree()
-        // console.log(`${JSON.stringify(tree, undefined, 2)}`)
         const matcher = tree.filter( v => v.type === 'INT' )
         assertEquals( matcher.length, 2 )
         assertEquals( matcher[0].value, '1234')
@@ -68,7 +61,6 @@ Deno.test({
     sanitizeOps: false
 })
 
-
 Deno.test({
     name: '04 - Parsing an recursive array assignment', 
     fn: () => {  
@@ -78,7 +70,6 @@ Deno.test({
         parser.reset(input)
         assert( parser.result.size > 70)
         const tree = parser.getParseTree()
-        // console.log(`${JSON.stringify(tree, undefined, 2)}`)
         const matcher = tree.filter( v => v.type === 'INT' )
         assertEquals( matcher.length, 4 )
         assertEquals( matcher[0].value, '1234')

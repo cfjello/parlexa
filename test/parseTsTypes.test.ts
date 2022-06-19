@@ -5,42 +5,6 @@ import  PR  from "../examples/tsTypes/parserRules.ts"
 
 export interface IIndexable<T> { [key: string]: T }
 
-export type   NoteUpperType = 'A' | 'B' |'C' 
-export type NoteLowerType = 'a' | 'b' | 'c' 
-export type NoteType = NoteUpperType | NoteLowerType | 'NULL'
-
-type Checks = Map<string, () => boolean>
-
-export type  NoteEntry = { v: NoteType, i: boolean}
-
-export type ChecksMapType = Map<string, () => boolean>
-
-export type ChordType = { 
-  init:       boolean
-  // checks:     Map<string, () => boolean>, 
-  note:       NoteEntry, 
-  sharpFlat:  string, 
-  chord:      string, 
-  majMin:     string, 
-  ext:        string, 
-  ext2:       string,
-  inv:        number,
-  minus:      number[],
-  bass:       string,
-  tie:        boolean, 
-  // meta:       {}
-}
-// const decoder = new TextDecoder('utf-8'); 
-// const angie = decoder.decode(Deno.readFileSync('./Angie.txt'))
-
-// const parser = new Parser( LR, PR, 'reset')
-// parser.debug = false
-// parser.reset("export type  NoteEntry = { v: NoteType, i: boolean}")
-
-
-
-type xxx = NoteType | ( NoteUpperType & NoteLowerType ) 
-
 Deno.test({
     name: '00 - Parser can read a comma separated list', 
     fn: () => {  
@@ -53,13 +17,10 @@ Deno.test({
         const fifthType = tree.filter( v => v.value === 'FifthType')
         assert( fifthType !== undefined)
         assert( fifthType.length > 0 )
-        // console.log(JSON.stringify(tree, undefined, 2))
-        // assertEquals( tree.length, 13 )
     },
     sanitizeResources: false,
     sanitizeOps: false
 })
-
 
 Deno.test({
     name: '01 - Parser can read Type AND and OR Logic ', 
@@ -73,13 +34,10 @@ Deno.test({
         const thirdType = tree.filter( v => v.value === 'ThirdType')
         assert( thirdType !== undefined)
         assert( thirdType.length > 0 )
-        // console.log(JSON.stringify(tree, undefined, 2))
-        // assertEquals( tree.length, 13 )
     },
     sanitizeResources: false,
     sanitizeOps: false
 })
-
 
 Deno.test({
     name: '02 - Parser can read Grouped Type AND and OR Logic ', 
@@ -130,8 +88,6 @@ Deno.test({
     sanitizeResources: false,
     sanitizeOps: false
 })
-
-
 
 Deno.test({
     name: '04 - Parser can read an Angled and nested type definition', 
@@ -204,7 +160,6 @@ Deno.test({
             const parser = new Parser( LR, PR, 'reset')
             parser.debug = false
             parser.reset(typeStr)
-
         }
         catch( err ) {
             assert( err.indexOf( 'Parse was imcomplete') === 0  )
@@ -213,7 +168,6 @@ Deno.test({
     sanitizeResources: false,
     sanitizeOps: false
 })
-
 
 Deno.test({
     name: '08 - Parser can read simple type Object', 
@@ -229,20 +183,16 @@ Deno.test({
         const myType = tree.filter( v => v.value === 'boolean' )
         assert( myType !== undefined)
         assert( myType.length > 0  )
-        // assertEquals( parser.result.size, 13 )
-        // const tree = parser.getParseTree()
-        // assertEquals( tree.length, 13 ) 
     },
     sanitizeResources: false,
     sanitizeOps: false
 })
 
-
 Deno.test({
     name: '09 - Parser can read a larger multi line  type Object', 
     fn: () => {  
         const typeStr = `
-        export type ChordType = { 
+        export type ChordType09 = { 
             init:       boolean,
             // checks:     Map<string, () => boolean>, 
             note:       NoteEntry, 
@@ -274,7 +224,7 @@ Deno.test({
     name: '10 - Parser can read a nested type Object', 
     fn: () => {  
         const typeStr = `
-        export type ChordType = { 
+        export type ChordType10 = { 
             init:       boolean,
             // checks:     Map<string, () => boolean>, 
             note:       NoteEntry, 
@@ -298,7 +248,7 @@ Deno.test({
         assert( tree.length >  86 )
 
         const myType = tree.filter( v => v.value === 'number' )
-        assert( myType !== undefined)
+        assert( myType !== undefined )
         assert( myType.length > 0  )
     },
     sanitizeResources: false,

@@ -1,11 +1,11 @@
-import { Keys, Matcher, MatchRecord, ParserRules } from "../../interfaces.ts";
+import { Keys, ParserRules } from "../../interfaces.ts";
 import LR from "./lexerRules.ts";
 
 //
 // User defined group-tokens for this set of parser rules
 //
 export type ParserTokens =  'reset' | 'typeObj' | 'typeBody' | 'space' | 
-                            'qoutedIdent' |'allways' | 'typeEntry' | 'typeList' | 
+                            'qoutedIdent' | 'typeEntry' | 'typeList' | 
                             'typeLogic' | 'typeDef' | 'SQBrackets' |  'typeBodyList' |
                             'inlineType' |'typeLogicList' | 'identifier' | 'typeBodyEntry' | 'typeEntryList' |
                             'typeDefList' | 'typeObjDef'
@@ -56,7 +56,6 @@ export const PR: ParserRules<Keys<ParserTokens, typeof LR>> = {
             ['typeList', '0:m']
         ]
     },
-
     // A basic type identifier or type object 
     typeEntry : {
         expect: [
@@ -73,7 +72,6 @@ export const PR: ParserRules<Keys<ParserTokens, typeof LR>> = {
             ['typeDef', '1:1'],
         ]
     },
-
     typeDefList: {
         multi: '0:m',
         expect: [
@@ -81,7 +79,6 @@ export const PR: ParserRules<Keys<ParserTokens, typeof LR>> = {
             [ 'typeDef', '0:m'],
         ]
     },
-
     typeDef: {
         multi: '0:m',
         expect: [
@@ -117,14 +114,12 @@ export const PR: ParserRules<Keys<ParserTokens, typeof LR>> = {
             [LR.ANGLE_END, '1:1' ]
         ]
     },
-
     identifier: {
         expect: [
             [LR.LHS_IDENT, '1:1', 'xor'],
             [LR.IDENT, '1:1']
         ]
     },
-
     IDENT: {
         multi: '0:1',
         expect: [ 
@@ -132,14 +127,6 @@ export const PR: ParserRules<Keys<ParserTokens, typeof LR>> = {
             ['SQBrackets', '0:1'] 
         ]
     },
-    /*
-    TSTYPE: {
-        multi: '0:m',
-        expect: [ 
-            ['SQBrackets', '0:1'] 
-        ]
-    },
-    */
     typeObj:  {
         multi: '1:1',
         expect: [
@@ -164,8 +151,7 @@ export const PR: ParserRules<Keys<ParserTokens, typeof LR>> = {
             ['typeObjDef',  '1:1'],
             ['typeBodyList',  '0:m'],
         ]
-    },
-
+    }
 }
 
 export default PR
