@@ -1,4 +1,4 @@
-import { Keys, ParserRules } from "../../interfaces.ts";
+import { Keys, Matcher, MatchRecordExt, ParserRules } from "../../interfaces.ts";
 import LR from "./lexerRules.ts";
 
 //
@@ -47,7 +47,11 @@ export const PR: ParserRules<Keys<ParserTokens, typeof LR>> = {
         expect: [ 
             [LR.INT, '1:1'],
             [ 'assignEnd', '1:1' ]
-        ] 
+        ],
+        cb: (m) => { 
+            (m as MatchRecordExt).intAssignCB = `${m.value} Callback was here`
+            return m 
+        }
     },
     strAssign: {
         multi: '0:1',
@@ -59,8 +63,12 @@ export const PR: ParserRules<Keys<ParserTokens, typeof LR>> = {
 
     arrElement: {
         expect: [ 
-            [LR.STR, '1:1', 'xor'],
-            [LR.INT, '1:1', 'xor'],
+            {   match: LR.STR, 
+                multi: '1:1', 
+                logic: 'xor',
+                cb: (m) => { return m }
+            } as Matcher,
+            [LR.INT, '1:1', 'xor', (m) => { return m } ] ,
             ['arrAssign', '1:1']
         ] 
     },
@@ -88,7 +96,7 @@ export const PR: ParserRules<Keys<ParserTokens, typeof LR>> = {
             ['strAssign',   '1:1', 'xor'],
             ['arrAssign',  '1:1'],
             // ['objAssign', '1:1']     
-        ] 
+        ],
     },
     assignment: {
         multi: '1:1',

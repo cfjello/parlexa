@@ -5,32 +5,53 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "name": "Debug.ts",
+            "request": "launch",
+            "type": "node",
+            "cwd": "${workspaceFolder}",
+            "program": "${workspaceFolder}\\debug.ts",
+            "runtimeExecutable": "C:\\Users\\claus\\.deno\\bin\\deno.exe",
+            "runtimeArgs": [
+                "run",
+                "--unstable",
+                "--inspect-brk=127.0.0.1:9300",
+                "--allow-all"
+            ],
+            "attachSimplePort": 9300,
+            "outputCapture": "std"
+        },
+
+
+        {
             "request": "launch",
             "name": "Deno RUN",
-            "type": "pwa-node",
+            "type": "node",
             "cwd": "${workspaceFolder}",
             "runtimeExecutable": "C:\\Users\\claus\\.deno\\bin\\deno.exe",
             "runtimeArgs": [
                 "run",
                 "--unstable",
-                "--inspect-brk",
+                "--inspect-brk=127.0.0.1:9300",
                 "--allow-all",
                 "${file}"
             ],
-            "attachSimplePort": 9229
+            "attachSimplePort": 9300,
+            "outputCapture": "std"
         },
         {
             "name": "Deno TEST <file>",
-            "type": "pwa-node",
+            "type": "node",
             "request": "launch",
-            "runtimeExecutable": "deno",
+            "runtimeExecutable": "C:\\Users\\claus\\.deno\\bin\\deno.exe",
             "runtimeArgs": [
                 "test", 
-                "--inspect-brk",  
+                "--inspect-brk=127.0.0.1:9300",  
                 "-A", 
                 "${file}"
             ],
-            "attachSimplePort": 9229
+            "attachSimplePort": 9300,
+            "outputCapture": "std"
         },
+
     ],
 }

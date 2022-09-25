@@ -5,6 +5,7 @@ import  LR  from "../examples/leadSheet/lexerRules.ts"
 import { PR } from "../examples/leadSheet/parserRules.ts"
 export interface PIndexable { [key: string]: any }
 
+
 Deno.test({
     name: '01 - Parser can read a header Title and Auther', 
     fn: () => {  
@@ -38,6 +39,7 @@ Deno.test({
 Deno.test({
     name: '03 - ParseTree has only the matched child references', 
     fn: () => {  
+        // deno-lint-ignore no-explicit-any
         const idMap = new Map<string,any>()
         const parser = new Parser( LR, PR, 'reset')
         // Note: this test wil fail if debug is set to true

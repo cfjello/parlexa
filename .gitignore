@@ -3,3 +3,4 @@
 res.out
 /test/out.txt
 examples/tsTypes/parserRulesClass.ts
+debug.ts

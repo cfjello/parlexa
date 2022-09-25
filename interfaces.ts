@@ -34,6 +34,10 @@ export type MatchRecord = {
     children: string[]
 }
 
+// deno-lint-ignore no-explicit-any
+export type GenericObject = { [key: string]: any }
+export type MatchRecordExt = MatchRecord & GenericObject
+
 export type Matched = { foundToken: boolean, id?: string, ignore: boolean } 
 
 export type MRecIterator = { value: MatchRecord, done: boolean }
@@ -51,13 +55,14 @@ export type Info<T> = {
 // Lexer and Parser type integration magic
 // 
 export type Cardinality = `${0|1}:${(number|'m')}`
+export type Callback =  ( m: MatchRecord ) => MatchRecordExt 
 
 export interface Matcher {
     match  : RegExp,
     multi? : Cardinality,
     logic?:  Logical,
-    // deno-lint-ignore no-explicit-any
-    cb?    : ( e: any ) => any
+    ignore?: boolean,
+    cb?    : Callback
 }
 
 // The internal representation within the parser
@@ -71,17 +76,29 @@ export type InternMatcher = {
     type:       string,
     regexp?:    RegExp,
     lRRef:      RegExp | Matcher,
-    // deno-lint-ignore no-explicit-any
-    cb?:        ( e: any ) => any,
-    parent?:    string
+    cb?:        Callback,
+    parent?:    string,
+    keyExt?:    string
 }
 
 // The internal representation within the parser
-export type ExpectMap       = { multi: Cardinality, expect:  Array<InternMatcher> }
-export type LexerRules      = Record<string, Matcher | RegExp >
-export type Logical         =  'xor' | 'NOP' | 'ignore'
-export type Expect<T>       = { multi?: Cardinality, expect:  Array<ExpectEntry<T>> }
-export type ExpectEntry<T>  = Array<Matcher | RegExp | T | Cardinality | Logical> | Matcher | RegExp | T
+export type ExpectMap       = { 
+    multi:   Cardinality,
+    cb?:     Callback, 
+    expect:  Array<InternMatcher> 
+}
+
+export type LexerRules  = Record<string, Matcher | RegExp >
+export type Logical     =  'xor' | 'NOP' | 'ignore'
+
+export type Expect<T>       = { 
+    multi?: Cardinality, expect:  
+    Array<ExpectEntry<T>>, 
+    cb?: Callback  
+}
+
+export type ShortExpectEntry<T> = Array<Matcher | RegExp | T | Cardinality | Logical | Callback>
+export type ExpectEntry<T>  = ShortExpectEntry<T> | Matcher | RegExp | T
 export type MatchEntry<T>   = Matcher | RegExp | T | Array<Matcher | T | Cardinality>
 export type ParserRules<T>  = Record<string, Expect<T>>
 export type Keys<G,L>       = G | L | '__undef__' | 'unknown'

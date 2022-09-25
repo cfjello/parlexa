@@ -13,11 +13,11 @@ const LR: LexerRules = {
     BAR:        XRegExp('(?<value>\\|{1,2})','xug'),
     SECTION:    XRegExp( '(?<value>[\\p{L}0-9\\- \\t]+?)[ \\t]*(?<colon>:)', 'xug' ),
     TEXT:    { 
-        match: XRegExp( '(?<value0>_)(?<value>[\\p{L}0-9\\- \\t\\p{P}]+)[ \\t]*(?=$|\\n)', 'xug' ),
+        match: XRegExp( '(?<token>_)[\\t ]*(?<value>[^\\|\\n]+)[ \\t]*(?=$|\\n)', 'xug' ),
         // deno-lint-ignore no-explicit-any
         cb: ( e: any ) => { 
             try {
-                e.value = e.groups.value0.trim() + e.groups.value.trim()
+                e.value = e.value.trim()
                 return e
             }
             catch(err) {

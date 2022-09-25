@@ -3,6 +3,9 @@ import { Parser } from "../Parser.ts";
 import  LR  from "../examples/basics/lexerRules.ts"
 import { PR } from "../examples/basics/parserRules.ts"
 
+
+let debugHook = true
+
 Deno.test({
     name: '01 - Parsing an int assignment', 
     fn: () => {  
@@ -38,6 +41,7 @@ Deno.test({
     sanitizeResources: false,
     sanitizeOps: false
 })
+
 
 Deno.test({
     name: '03 - Parsing an array assignment', 
@@ -80,3 +84,21 @@ Deno.test({
     sanitizeResources: false,
     sanitizeOps: false
 })
+
+Deno.test({
+    name: '04 - Parser can call match callback function', 
+    fn: () => {  
+        const input = `     let øæå  = 1234`
+        const parser = new Parser( LR, PR, 'reset')
+        parser.debug = false
+        parser.reset(input)
+        const tree = parser.getParseTree()
+        // deno-lint-ignore no-explicit-any
+        const matcher : any[] = tree.filter( v => v.value === 'intAssign' )
+        // console.debug(`${JSON.stringify(tree,undefined,2)}`)
+        assertEquals( matcher[0].intAssignCB,'intAssign Callback was here')
+    },
+    sanitizeResources: false,
+    sanitizeOps: false
+})
+
