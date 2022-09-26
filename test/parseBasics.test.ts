@@ -88,17 +88,81 @@ Deno.test({
 Deno.test({
     name: '04 - Parser can call match callback function', 
     fn: () => {  
-        const input = `     let øæå  = 1234`
+        const input = `     let øæå  = [1234]`
         const parser = new Parser( LR, PR, 'reset')
         parser.debug = false
         parser.reset(input)
         const tree = parser.getParseTree()
         // deno-lint-ignore no-explicit-any
-        const matcher : any[] = tree.filter( v => v.value === 'intAssign' )
+        const matcher : any[] = tree.filter( v => v.type === 'INT' )
         // console.debug(`${JSON.stringify(tree,undefined,2)}`)
-        assertEquals( matcher[0].intAssignCB,'intAssign Callback was here')
+        assertEquals( matcher[0].intAssignCB,'INT Callback was here')
     },
     sanitizeResources: false,
     sanitizeOps: false
 })
+
+type UserScope = { recId: string, callBackFound: boolean, intWasHere: string, comment: string }
+
+Deno.test({
+    name: '05 - Parser can utilize user defined scope', 
+    fn: () => {  
+        const input = `     let øæå  = [ 1234, 'I am a string']`
+        const parser = new Parser( LR, PR, 'reset', {} as UserScope)
+        parser.debug = false
+        parser.reset(input)
+        const userData = parser.getScope()
+        // console.debug(`${JSON.stringify(userData,undefined,2)}`)
+        assert( userData.recId !== undefined)
+        assert( userData.callBackFound)
+        assertEquals( userData.comment, 'This is parser global user defined data')
+        assertEquals(userData.intWasHere, 'integer was here' )
+    },
+    sanitizeResources: false,
+    sanitizeOps: false
+})
+
+
+Deno.test({
+    name: '06 - Parser can do a reset', 
+    fn: () => {  
+        let input = "     let øæå  = 12345;"
+        const parser = new Parser( LR, PR, 'reset')
+        parser.debug = false
+        parser.reset(input)
+        assert( parser.result.size >= 18 )
+        let tree = parser.getParseTree()
+        // console.log(`${JSON.stringify(tree,undefined,2)}`)
+        // deno-lint-ignore no-explicit-any
+        let matcher : any[] = tree.filter( v => v.type === 'INT' )
+        // console.log(`${JSON.stringify(matcher)}`)
+        assertEquals( matcher[0].value, '12345')
+
+        input = `     let øæå  = [1234]`
+        parser.reset(input)
+        parser.debug = false
+        parser.reset(input)
+        tree = parser.getParseTree()
+        matcher = tree.filter( v => v.type === 'INT' )
+        // console.debug(`${JSON.stringify(tree,undefined,2)}`)
+        assertEquals( matcher[0].intAssignCB,'INT Callback was here')
+
+        input = `     let øæå  = [ 1234, 'I am a string', [ 5678, 6789, 78910], 'ÆØÅ string with numbers 123456' ]`;
+        parser.reset(input)
+        parser.debug = false
+        // assert( parser.result.size > 70)
+        tree = parser.getParseTree()
+        matcher = tree.filter( v => v.type === 'INT' )
+        assertEquals( matcher.length, 4 )
+        assertEquals( matcher[0].value, '1234')
+        assertEquals( matcher[1].value, '5678')
+        assertEquals( matcher[2].value, '6789')
+        assertEquals( matcher[3].value, '78910')
+    },
+    sanitizeResources: false,
+    sanitizeOps: false
+})
+
+
+
 

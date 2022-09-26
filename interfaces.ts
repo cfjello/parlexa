@@ -55,7 +55,8 @@ export type Info<T> = {
 // Lexer and Parser type integration magic
 // 
 export type Cardinality = `${0|1}:${(number|'m')}`
-export type Callback =  ( m: MatchRecord ) => MatchRecordExt 
+// deno-lint-ignore no-explicit-any
+export type Callback<S=any> =  ( m: MatchRecord, s: S ) => MatchRecordExt 
 
 export interface Matcher {
     match  : RegExp,

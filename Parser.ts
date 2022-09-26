@@ -12,12 +12,12 @@ export interface IIndexable<T> { [key: string]: T }
 export interface MIndexable<T> { [key: string]: RegExp | Matcher }
 
 // Parser state
-export class Parser<T>  {
+// deno-lint-ignore no-explicit-any
+export class Parser<T, S = any>  {
 
     public debug  = false;
     debugHook     = 0
     public always = 'always';
-
     maxCount      = 0
     // Match positions
     line    = 1
@@ -51,7 +51,11 @@ export class Parser<T>  {
         return this._parseTree;
     }
 
-    constructor( public LR: LexerRules,  public PR: ParserRules<T>,  public initState: T ) {
+    public set parseTree( tree ) {
+        this._parseTree = tree;
+    }
+
+    constructor( public LR: LexerRules,  public PR: ParserRules<T>,  public initState: T, public scope = {} as S ) {
         const multiDefault: Cardinality  = '0:m'
         try {
         // Map Building 
@@ -317,7 +321,13 @@ export class Parser<T>  {
         return res
     }
 
+    // User defined scope, that is passed to the the parser 
+    // csllbacks along with the match record
+    getScope(): S { return this.scope }
+
+    //
     // Output function
+    //
     getParseTree(): MatchRecord[] {
         const res: MatchRecord[] = []
         const unMatched = new Map<string, boolean>()
@@ -408,7 +418,12 @@ export class Parser<T>  {
         this.input      = inputStr
         this.line       = info ? info.line : 1
         this.col        = info ? info.col : 1 
-        this.result     = info ? info.result : this.result
+        this.bol        = 0 
+        this.pos        = 0
+        this.firstSymbol = true
+        this.prevToken  = '__undef__'
+        this.result     = info ? info.result : this.result.size > 0 ? new Map<string, MatchRecordExt>() : this.result
+        this.parseTree  = {}
         this.nextIdx    = info ? info.nextIdx : 0
         this.ignoreWS   = info ? info.ignoreWS : false
         this.initState  = info ? info.initState : this.initState 
@@ -421,7 +436,6 @@ export class Parser<T>  {
     }
 
     setMatchPos( matchToken: string, pos: number) {
-
         if ( (matchToken ?? 'undefined') === 'undefined' || matchToken === '' ) {
             // force a stack trace
             throw Error( `setMatchPos() got an undefined token name` )
@@ -503,8 +517,7 @@ export class Parser<T>  {
                 offset: goingInPos,
                 parent: parentId
             })
-            // if it exists, run the callback function on the result 
-            if ( iMatcher.cb !== undefined ) iMatcher.cb(matchRec)
+           
             // Add any additional named match groups
             if ( ! _.isUndefined(res.groups ) ) {
                 for ( const k in res.groups  ) {
@@ -512,6 +525,9 @@ export class Parser<T>  {
                     (matchRec as IIndexable<any>)[k] = res.groups[k]
                 }
             }
+            
+            // if it exists, run the callback function on the result 
+            if ( iMatcher.cb !== undefined ) iMatcher.cb(matchRec, this.scope as S)
 
             // Store the result 
             if ( ! iMatcher.ignore ) {
@@ -821,8 +837,6 @@ export class Parser<T>  {
             }
         }
 
-        
-        // const matchObj = this.result.get( id )!
         if ( ! failBranch ) {
             // TODO: Check the matched condition below - is this correct
             // After passing all the above checks: 
@@ -836,14 +850,14 @@ export class Parser<T>  {
             })
         }
 
-       
+        // If definedFinally, call the ParserRules token callback cb( curretMatchRecored, userDefinedScopeObject)
         if ( ! failBranch && hasCallback ) {
-            eMap.cb!( tokenMatchRec )
+            eMap.cb!( tokenMatchRec, this.scope as S )
         }
 
-        // Finally call the ParserRules token callback cb(), if defined
         this.setMatchPos(tokenName, goingInPos)
 
+        // Check whether to retry the current symbol.
         if  (                            // When to retry the same match pattern
               this.pos > goingInPos &&   // we have progress
               ! failBranch &&            // the branch did not fail
@@ -851,10 +865,12 @@ export class Parser<T>  {
               ! this.EOF()               // and not at EOF
             ) {
             // Retry the same token for more matches 
-            if ( this.debug ) console.log(`${this.getIndent(level)}PARSE RETRY token: ${token}`)
+            if ( this.debug ) console.log(`${this.getIndent(level)}RETRY token: ${token}`)
             this.parse( token, id, level + 1, roundTrips + 1 )
         }
       
+        // Parser Error message with pointer to the specific 
+        // line and position in the input where the parsing failed.
         if ( firstSymbol && this.pos < this.input.length ) {
             let nlPos = this.input.substring(0, this.pos > 2 ? this.pos -2 : 0 ).lastIndexOf('\n')
             nlPos = nlPos < 0 ? nlPos = 0 : nlPos + 1
@@ -868,7 +884,7 @@ export class Parser<T>  {
             throw Error( `Parse was imcomplete: ${this.pos} < ${this.input.length} (length of input)`)
         }
 
-        if ( this.debug  && token + '' !== this.always ) console.debug( ( `${this.getIndent(level)}PARSE_END: ${token}(${level})`)) 
+        if ( this.debug  && token + '' !== this.always ) console.debug( ( `${this.getIndent(level)}ENDED: ${token}(${level})`)) 
         return failBranch
     }
 }

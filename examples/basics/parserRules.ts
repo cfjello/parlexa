@@ -8,7 +8,7 @@ export type ParserTokens =  'reset' | 'allways' |
                             'assignment' | 'rhsAssign' | 
                              'intAssign' | 'strAssign' |
                             'arrAssign' | 'objAssign' | 'assignEnd' | 
-                            'arrElement' | 'arrListElem' 
+                            'arrElement' | 'arrListElem'
                             
                             
                             /*|
@@ -45,13 +45,13 @@ export const PR: ParserRules<Keys<ParserTokens, typeof LR>> = {
     intAssign: {
         multi: '0:1',
         expect: [ 
-            [LR.INT, '1:1'],
+            [LR.INT, '1:1', (m, s) => { 
+                s.intWasHere = 'integer was here'; 
+                // (m as MatchRecordExt).intAssignCB = `${m.token} Callback was here`
+                return m 
+            }],
             [ 'assignEnd', '1:1' ]
         ],
-        cb: (m) => { 
-            (m as MatchRecordExt).intAssignCB = `${m.value} Callback was here`
-            return m 
-        }
     },
     strAssign: {
         multi: '0:1',
@@ -66,9 +66,14 @@ export const PR: ParserRules<Keys<ParserTokens, typeof LR>> = {
             {   match: LR.STR, 
                 multi: '1:1', 
                 logic: 'xor',
-                cb: (m) => { return m }
+                cb: (m, s) => { s.comment = 'This is parser global user defined data' ;return m }
             } as Matcher,
-            [LR.INT, '1:1', 'xor', (m) => { return m } ] ,
+            [LR.INT, '1:1', 'xor', (m, s) => { 
+                s.intWasHere = 'integer was here'; 
+                (m as MatchRecordExt).intAssignCB = `${m.type} Callback was here`
+                // console.log( `m for LR.INT: ${JSON.stringify(m)}`)
+                return m 
+            }] ,
             ['arrAssign', '1:1']
         ] 
     },
@@ -86,7 +91,13 @@ export const PR: ParserRules<Keys<ParserTokens, typeof LR>> = {
             ['arrElement', '1:1'],
             ['arrListElem', '0:m'],
             [ LR.SQB_END, '1:1']
-        ] 
+        ],
+        cb: (m,s) => { 
+            (m as MatchRecordExt).arrAssignCB = `${m.value} Callback was here`
+            s.recId = m.id
+            s.callBackFound = true
+            return m 
+        }
     },
 
     rhsAssign: {
