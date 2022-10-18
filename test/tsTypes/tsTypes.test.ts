@@ -1,7 +1,7 @@
 import { assert, assertEquals } from "https://deno.land/std/testing/asserts.ts";
-import { Parser } from "../Parser.ts";
-import  LR  from "../examples/tsTypes/lexerRules.ts"
-import  PR  from "../examples/tsTypes/parserRules.ts"
+import { Parser } from "../../Parser.ts";
+import  LR  from "./lexerRules.ts"
+import  PR  from "./parserRules.ts"
 
 export interface IIndexable<T> { [key: string]: T }
 

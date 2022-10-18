@@ -1,8 +1,8 @@
 import { assert } from "https://deno.land/std/testing/asserts.ts";
-import { angie } from "../examples/leadSheet/angieData.ts"
-import { Parser } from "../Parser.ts";
-import  LR  from "../examples/leadSheet/lexerRules.ts"
-import { PR } from "../examples/leadSheet/parserRules.ts"
+import { angie } from "./angieData.ts"
+import { Parser } from "../../Parser.ts";
+import  LR  from "./lexerRules.ts"
+import { PR } from "./parserRules.ts"
 export interface PIndexable { [key: string]: any }
 
 

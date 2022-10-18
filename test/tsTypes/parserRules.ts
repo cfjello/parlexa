@@ -38,9 +38,9 @@ export const PR: ParserRules<Keys<ParserTokens, typeof LR>> = {
     qoutedIdent: {
         multi: '0:1',
         expect: [
-            [LR.STR1, '1:1', 'xor'],
-            [LR.STR2,  '1:1', 'xor'],
-            [LR.STR3, '1:1']
+            [LR.STR1, '0:1', 'xor'],
+            [LR.STR2,  '0:1', 'xor'],
+            [LR.STR3, '0:1']
         ]
     },
     typeList:  {
@@ -59,15 +59,15 @@ export const PR: ParserRules<Keys<ParserTokens, typeof LR>> = {
     // A basic type identifier or type object 
     typeEntry : {
         expect: [
-            [LR.IDENT,  '1:1', 'xor'],
-            ['qoutedIdent', '1:1', 'xor'],
-            ['typeObj', '1:1' ]
+            [LR.IDENT,  '0:1', 'xor'],
+            ['qoutedIdent', '0:1', 'xor'],
+            ['typeObj', '0:1' ]
         ]
     },
     typeLogicList:  {
         multi: '0:m',
         expect: [
-            [ LR.OR,     '1:1', 'xor'],
+            [ LR.OR,     '1:1', 'or'],
             [ LR.AMBERS, '1:1'],
             ['typeDef', '1:1'],
         ]
@@ -128,7 +128,7 @@ export const PR: ParserRules<Keys<ParserTokens, typeof LR>> = {
         ]
     },
     typeObj:  {
-        multi: '1:1',
+        multi: '0:1',
         expect: [
             [LR.CURLY_BEGIN,   '1:1'],
             ['typeBody',    '1:1' ],
@@ -138,8 +138,8 @@ export const PR: ParserRules<Keys<ParserTokens, typeof LR>> = {
     typeBodyList: {
         multi: '0:m',
         expect: [
-            [LR.COMMA,  '1:1', 'xor'],
-            [LR.SIMICOLON,  '1:1' ],
+            [LR.COMMA,  '0:1', 'xor'],
+            [LR.SIMICOLON,  '0:1' ],
             ['typeBody', '0:1' ]
         ]
     },

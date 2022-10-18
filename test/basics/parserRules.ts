@@ -65,15 +65,15 @@ export const PR: ParserRules<Keys<ParserTokens, typeof LR>> = {
         expect: [ 
             {   match: LR.STR, 
                 multi: '1:1', 
-                logic: 'xor',
+                logic: 'or',
                 cb: (m, s) => { s.comment = 'This is parser global user defined data' ;return m }
             } as Matcher,
-            [LR.INT, '1:1', 'xor', (m, s) => { 
+            [LR.INT, '1:1', 'or', (m, s) => { 
                 s.intWasHere = 'integer was here'; 
                 (m as MatchRecordExt).intAssignCB = `${m.type} Callback was here`
                 // console.log( `m for LR.INT: ${JSON.stringify(m)}`)
                 return m 
-            }] ,
+            }],
             ['arrAssign', '1:1']
         ] 
     },
@@ -103,8 +103,8 @@ export const PR: ParserRules<Keys<ParserTokens, typeof LR>> = {
     rhsAssign: {
         multi: '1:1',
         expect: [ 
-            ['intAssign', '1:1', 'xor'],
-            ['strAssign',   '1:1', 'xor'],
+            ['intAssign', '1:1', 'or'],
+            ['strAssign',   '1:1', 'or'],
             ['arrAssign',  '1:1'],
             // ['objAssign', '1:1']     
         ],

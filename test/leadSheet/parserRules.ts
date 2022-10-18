@@ -3,19 +3,21 @@ import LR from "./lexerRules.ts";
 //
 // User defined group-tokens for this set of parser rules
 //
-export type ParserTokens = 'reset' | 'header' | 'space' | 'form' |'always' | 'duration' | 'chord' | 'common' | 'commonList' 
+export type ParserTokens = 'reset' | 'header' | 'space' | 'form' |'always' | 'duration' | 'chord' | 
+                           'common' | 'commonList' | 'minor' | 'scaleMode' | 'note' | 'scale' | 'testDummy' | 'key'
 //
 // ParserRules groups (key tokens below) are typed as the combination of the user defined  
 // ParserTokens (above) and the LexerRules instanse (LR) keys
 // 
 export const PR: ParserRules<Keys<ParserTokens, typeof LR>> = {
-    always : {  
+    always: {  
         expect: [
             [ LR.WS , '0:m', 'ignore'],
             [ LR.NL,  '0:m' ]
         ]
     },
-    duration: {     
+    duration: {    
+        multi: '0:m', 
         expect: [ 
             [ LR.DURATION,     '1:1', 'xor' ] , 
             [ LR.DURATION2,    '1:1' ],
@@ -71,6 +73,19 @@ export const PR: ParserRules<Keys<ParserTokens, typeof LR>> = {
             LR.USE
         ]
     },
+    testDummy:  { 
+        expect: [
+            [ LR.IN_BRACKET, '1:1'],
+            [ LR.IN_KEY, '1:1', 'xor'],
+            [ LR.IN_METER, '1:1', 'xor'],
+            [ LR.IN_SWING, '1:1'],
+            [ LR.COLON, '1:1'],
+            [ LR.IN_KEY_RHS, '1:1', 'or'],
+            [ LR.IN_METER_RHS, '1:1', 'or'],
+            [ LR.IN_SWING_RHS, '1:1'],
+            [ LR.IN_BRACKET_END, '1:1']
+        ]
+    },
     SQ_BRACKET: {
         expect: [ 
             [ 'commonList', '0:m'],
@@ -82,11 +97,11 @@ export const PR: ParserRules<Keys<ParserTokens, typeof LR>> = {
         multi: '1:m',
         expect: [
             [ LR.REPEAT_COUNT, '0:m'],
-            [ LR.CHORD_NOTE , '1:1', 'xor'],
-            [ LR.REST,        '1:1', 'xor'],
-            [ LR.REPEAT_LAST, '1:1', 'xor'],
-            [ LR.SQ_BRACKET,  '1:1', 'xor'],
-            [ LR.REPEAT_END,  '1:1' ]
+            [ LR.CHORD_NOTE , '0:1', 'or'],
+            [ LR.REST,        '0:1', 'or'],
+            [ LR.REPEAT_LAST, '0:1', 'or'],
+            [ LR.SQ_BRACKET,  '0:1', 'or'],
+            [ LR.REPEAT_END,  '0:1' ]
         ]
     },
     CHORD_NOTE: {
@@ -106,5 +121,40 @@ export const PR: ParserRules<Keys<ParserTokens, typeof LR>> = {
         expect: [
             [ 'duration', '0:1']
         ]
-    }
+    },
+    note: {
+        expect: [
+            [LR.NOTE_UPPER, 'xor'],
+            [LR.NOTE_LOWER, 'xor'],
+            [LR.NOTE_BOTH]
+        ]
+    },
+    minor: {
+        expect: [
+            [LR.MINOR_MOD, '0:1'],
+            [LR.MINOR, '1:1']
+        ]
+    },
+    scaleMode: {
+        multi: '1:1',
+        expect: [
+            [LR.NOTE_BOTH, '1:1'],
+            [LR.MODE, 'xor'],
+            ['minor', 'xor'],
+            [LR.MAJOR]
+        ]
+    },
+    
+    scale: {
+        expect: [
+            [LR.SCALE,    '1:1' ],
+            ['scaleMode', '1:1']
+        ],
+    },
+    key: {
+        expect: [
+            [LR.KEY2, '1:1'],
+            ['scaleMode', '1:1']
+        ]
+    },
 }

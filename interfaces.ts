@@ -66,13 +66,30 @@ export interface Matcher {
     cb?    : Callback
 }
 
+export type LogicDescriptor = {
+    key:        string,
+    logic:      Logical,
+    group:      number,
+    idx:        number,
+    matched:    boolean,
+    roundTrip:  number,
+    tries:      number,
+    matchCnt:   number
+}
+
+
 // The internal representation within the parser
 export type InternMatcher = { 
     key:        string, 
+    id:         string,
     multi:      Cardinality, 
-    logic?:     Logical,
-    xorGroup?:  number,
-    xorIdx?:    number,
+    roundTrip:  number,
+    tries:      number,
+    matchCnt:   number,
+    logic:      Logical,
+    logicGroup: number,
+    logicIdx:   number,
+    logicLast:  boolean,
     ignore?:    boolean, 
     type:       string,
     regexp?:    RegExp,
@@ -90,7 +107,7 @@ export type ExpectMap       = {
 }
 
 export type LexerRules  = Record<string, Matcher | RegExp >
-export type Logical     =  'xor' | 'NOP' | 'ignore'
+export type Logical     =  'or' | 'xor' | 'NOP' | 'none' | 'ignore'
 
 export type Expect<T>       = { 
     multi?: Cardinality, expect:  
@@ -98,12 +115,20 @@ export type Expect<T>       = {
     cb?: Callback  
 }
 
+
 export type ShortExpectEntry<T> = Array<Matcher | RegExp | T | Cardinality | Logical | Callback>
 export type ExpectEntry<T>  = ShortExpectEntry<T> | Matcher | RegExp | T
 export type MatchEntry<T>   = Matcher | RegExp | T | Array<Matcher | T | Cardinality>
 export type ParserRules<T>  = Record<string, Expect<T>>
-export type Keys<G,L>       = G | L | '__undef__' | 'unknown'
 
+
+export type Keys<G,L>       = G | L | 'NOP' | '__undef__' | 'unknown'
+
+export type ArrToObject<A extends readonly string[], E> = {
+    [K in A[number]]: E;
+}
+
+// export type ParserRules2<A,L> = Record<Keys< ArrToObject<A>, typeof L>, Expect<T>>
 export interface ArgsObject {
   [key: string]: string
 }

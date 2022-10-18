@@ -1,7 +1,7 @@
 import { assert, assertEquals } from "https://deno.land/std/testing/asserts.ts";
-import { Parser } from "../Parser.ts";
-import  LR  from "../examples/basics/lexerRules.ts"
-import { PR } from "../examples/basics/parserRules.ts"
+import { Parser } from "../../Parser.ts";
+import  LR  from "../basics/lexerRules.ts"
+import { PR } from "../basics/parserRules.ts"
 
 
 let debugHook = true
@@ -41,7 +41,6 @@ Deno.test({
     sanitizeResources: false,
     sanitizeOps: false
 })
-
 
 Deno.test({
     name: '03 - Parsing an array assignment', 
@@ -86,7 +85,7 @@ Deno.test({
 })
 
 Deno.test({
-    name: '04 - Parser can call match callback function', 
+    name: '05 - Parser can call match callback function', 
     fn: () => {  
         const input = `     let øæå  = [1234]`
         const parser = new Parser( LR, PR, 'reset')
@@ -105,7 +104,7 @@ Deno.test({
 type UserScope = { recId: string, callBackFound: boolean, intWasHere: string, comment: string }
 
 Deno.test({
-    name: '05 - Parser can utilize user defined scope', 
+    name: '06 - Parser can utilize user defined scope', 
     fn: () => {  
         const input = `     let øæå  = [ 1234, 'I am a string']`
         const parser = new Parser( LR, PR, 'reset', {} as UserScope)
@@ -122,9 +121,8 @@ Deno.test({
     sanitizeOps: false
 })
 
-
 Deno.test({
-    name: '06 - Parser can do a reset', 
+    name: '07 - Parser can do a reset', 
     fn: () => {  
         let input = "     let øæå  = 12345;"
         const parser = new Parser( LR, PR, 'reset')
@@ -162,7 +160,3 @@ Deno.test({
     sanitizeResources: false,
     sanitizeOps: false
 })
-
-
-
-

@@ -1,20 +1,21 @@
 // @deno-types='https://deno.land/x/xregexp/types/index.d.ts'
-import XRegExp from  'https://deno.land/x/xregexp/src/index.js'
+import XRegExp, { match } from  'https://deno.land/x/xregexp/src/index.js'
 import { ulid } from "https://raw.githubusercontent.com/ulid/javascript/master/dist/index.js"
 import { HierarKey } from "https://deno.land/x/hierarkey@v1.0/mod.ts"
 import { assert } from "https://deno.land/std@0.113.0/testing/asserts.ts";
-import { Cardinality, Expect, ExpectEntry, Logical, Matched, MatchRecord, InternMatcher, XorGroup, Matcher, LexerRules, ParserRules, Info, ShortExpectEntry, Callback, MatchRecordExt } from "./interfaces.ts"
-import { lodash as _ } from 'https://deno.land/x/deno_ts_lodash/mod.ts'
+import { _ } from './lodash.ts';
+import { Cardinality, Expect, ExpectEntry, Logical, Matched, MatchRecord, InternMatcher, XorGroup, Matcher, LexerRules, ParserRules, Info, ShortExpectEntry, Callback, MatchRecordExt, LogicDescriptor } from "./interfaces.ts"
 import { ExpectMap } from "./interfaces.ts";
 import * as Colors from "https://deno.land/std/fmt/colors.ts" 
+import { Logic } from "./Logic.ts";
 
 export interface IIndexable<T> { [key: string]: T }
 export interface MIndexable<T> { [key: string]: RegExp | Matcher }
 
+
 // Parser state
 // deno-lint-ignore no-explicit-any
 export class Parser<T, S = any>  {
-
     public debug  = false;
     debugHook     = 0
     public always = 'always';
@@ -27,7 +28,8 @@ export class Parser<T, S = any>  {
     firstSymbol = true
     prevToken = '__undef__'
     
-    
+    // Keep track of what tokens and rexexp has already been 
+    // matched at a specific position in the inpu
     matchPositions = new Map<string, Map<number,number>> ()
     input = ''
 
@@ -35,17 +37,20 @@ export class Parser<T, S = any>  {
     topNode: string | undefined
     topToken: T | undefined
 
+    // The Parser Result map
     result   =  new Map<string, MatchRecordExt>()
     reverseIdx =  [] as string[]
 
     nextIdx  = 0 
     ignoreWS = true
 
+    // Logic groups initialization
+    logicMap = new Map<string,Logic>() 
+
     // Lexer and Parser Maps
     private LRMap         = new Map<string, Matcher>()
-    private LRReverseMap  = new Map<RegExp | Matcher, string>()
+    private LRReverseMap  = new Map<Matcher | RegExp, string>()
     private PRMap         = new Map<string, ExpectMap>()
-
     private _parseTree: {[key: string]: MatchRecord} = {}
     public get parseTree() {
         return this._parseTree;
@@ -63,6 +68,7 @@ export class Parser<T, S = any>  {
             const m: RegExp | Matcher  = (LR as MIndexable<RegExp | Matcher>)[key]
             assert ( m !== undefined,`LS, Undefined Lexer entry for key: '${key}' - probably due to bad regular expression` )
             assert ( m instanceof RegExp || XRegExp.isRegExp(m.match), `Bad Lexer regular expression for key: '${key}'` )
+            assert ( key !== undefined , `Undefined LR key for: ${JSON.stringify(m,undefined,2)}`)
             
             // Convert ALL entries to Matcher entries
             let matcher: Matcher
@@ -83,44 +89,47 @@ export class Parser<T, S = any>  {
                 XRegExp.test('XXX', matcher.match)
             }
             catch(err) {
-                console.log( `Matcher: ${key} regexp has a bug: ${err}`)
+                console.log( Colors.red(`Matcher: ${key} regexp has a bug: ${err}`))
             }
 
             if ( ! ( 'multi' in matcher ) ) matcher.multi = multiDefault
             this.LRMap.set(key, matcher)
-            this.LRReverseMap.set((LR as MIndexable<Matcher | RegExp>)[key], key)   
+            this.LRReverseMap.set((LR as MIndexable<Matcher | RegExp>)[key], key)  
             
             assert( matcher === this.LRMap.get( key ), `LR_03 - Bad LRMap Key`)
-            assert( key === this.LRReverseMap.get( m ) , `LR_03 - Bad LRReverseMap Object Key`)
+            assert( key === this.LRReverseMap.get(m), `LR_03 - Bad LRReverseMap Object Key`)
         })
 
-        if ( this.debug ) console.debug( `KEYS: ${Object.keys( PR )}` )
+        if ( this.debug ) console.debug( `KEYS: ${Object.keys( PR )}`)
+
         Object.keys( PR ).forEach( key => {
             const pr = (PR as IIndexable<Expect<T>>)[key] 
             const expect:  InternMatcher[] = []
             if ( this.debug ) console.log (`Mapping key: ${key} with type: ${typeof key}`)
-            if ( key === 'reset' ) {
-                this.debugHook = 1
-            }
+
             pr.expect.forEach( ( e: ExpectEntry<T>) => {
                 if ( typeof e === 'string') {
                     expect.push( this.resolveString(e as string) )
                 }
                 else if ( Array.isArray(e)) {
                     const m = this.resolveExpectArray( e, multiDefault, key)
-                    expect.push( this.resolveXor(m) )
+                    expect.push( this.resolveLogic(key, m) )
                 }
                 else if ( e instanceof RegExp ) {
                     const regKey = this.LRReverseMap.get(e as RegExp)!
                     assert ( regKey !== undefined, `PR_02 , LRReverseMap key is missing for key: ${key} as ${typeof e} --> ${JSON.stringify(e)}`)
                     const m =  this.resolveRegExp(regKey, e as RegExp)
-                    expect.push( this.resolveXor(m) )
+                    expect.push( this.resolveLogic(key, m) )
                 }   
-                else if ( e instanceof Object  && 'match' in e  ) { // TODO: Fix , there are match in both PR and LR
-                    assert ( e.match !== undefined, `PR_03 , LRReverseMap RegExp is missing for key: ${key} as ${typeof e} --> ${JSON.stringify(e)}`)             
-                    const regKey = this.LRReverseMap.get(e.match as RegExp )!
+                else if ( e instanceof Object  && 'match' in e  ) { 
+                    // We have a Parser Match type object pointing to: 
+                    //  1) a Lexer Match type object, OR
+                    //  2) a Lexer RegExp type object
+                    assert ( e !== undefined, `PR_03 , Match object is undefined for: ${key}`)    
+                    const regKey = this.LRReverseMap.has(e as Matcher ) ? this.LRReverseMap.get(e as Matcher ) : this.LRReverseMap.get(e.match as RegExp ) 
+                    assert ( regKey !== undefined, `PR_03 , Reverse Lookup returned undefined for: ${JSON.stringify(e, undefined, 2)}`) 
                     const m =  this.resolveMatcher(regKey, e as Matcher )
-                    expect.push( this.resolveXor(m) )
+                    expect.push( this.resolveLogic(key, m) )
                 }    
                 else {
                     assert ( false, `PR_03 , LRReverseMap unknown TYPE for key: ${key} as ${typeof e} --> ${JSON.stringify(e)}`)
@@ -170,30 +179,38 @@ export class Parser<T, S = any>  {
         return res
     }
 
-    _xorActive = false
-    _xorGroup  = -1
-    _xorIdx    = -1
-    resolveXor( m: InternMatcher): InternMatcher  {
-        if ( m.logic ) {
-            if ( m.logic  === 'xor' )  {
-                if ( ! this._xorActive ) {
-                    this._xorActive = true
-                    this._xorGroup += 1
-                    this._xorIdx    = -1 
-                }
-                m.xorGroup = this._xorGroup
-                m.xorIdx   = ++this._xorIdx
+    _logicActive    = false
+    _logicGroup     = -1
+    _logicIdx       = -1
+    resolveLogic( token: string, m: InternMatcher): InternMatcher  {
+        if ( m.logic !== 'none' ) {
+            if ( ! this._logicActive ) { 
+                // Initialize new group when encountering FIRST member of a logic group
+                if ( ! this.logicMap.has( token ) ) this.logicMap.set(token, new Logic(token))
+                this._logicActive = true
+                this._logicGroup  = this.logicMap.get(token)!.getLength()
+                this._logicIdx    = -1    
+            }
+            // Set all entries but the last one by one
+            m.logicGroup = this._logicGroup
+            m.logicIdx   = ++this._logicIdx
+            m.logicLast  = false
+            this.logicMap.get(token)!.setMatch({ key: m.key, group: m.logicGroup, idx: m.logicIdx, logic: m.logic, matched: false, roundTrip:0, tries: 0, matchCnt: 0 })
+        }
+        else {
+            // Set the index for the LAST member of the group
+            if ( this._logicActive ) { 
+                m.logicGroup = this._logicGroup
+                m.logicIdx   = ++this._logicIdx
+                m.logicLast  = true
+                this._logicActive = false
+                this.logicMap.get(token)!.setMatch({ key: m.key, group: m.logicGroup, idx: m.logicIdx, logic: m.logic, roundTrip:0, tries: 0,  matched: false, matchCnt: 0 })
             }
             else {
-                if ( this._xorActive ) {
-                    m.xorGroup = this._xorGroup
-                    m.xorIdx   = ++this._xorIdx
-                    this._xorActive = false
-                }
-                else {
-                    m.xorGroup = -1
-                    m.xorIdx   = -1
-                }
+                // NO active logic group 
+                m.logicGroup = -1
+                m.logicIdx   = -1
+                m.logicLast  = false
             }
         }
         return m
@@ -207,8 +224,9 @@ export class Parser<T, S = any>  {
     ): InternMatcher {
         return { 
             key:        key, 
+            id:         ulid(),
             multi:      multiDefault,
-            logic:      'NOP',
+            logic:      'none',
             ignore:     false, 
             type:       'PR Token',
             regexp:     undefined,
@@ -223,12 +241,14 @@ export class Parser<T, S = any>  {
         multiDefault: Cardinality = '0:m',
         parent: string | undefined = undefined
     ): InternMatcher {
-        
         assert( e !== undefined, `Matcher: '${e}' is undefined` )
+        assert( key !== undefined, `Matcher.key is undefined` )           
         return { 
             key:    key, 
+            id:     ulid(),
             multi:  e.multi ?? multiDefault,
-            logic:  e.logic ?? 'NOP',
+            matchCnt: 0, 
+            logic:  e.logic ?? 'none',
             ignore: false, 
             type:   'Matcher',
             regexp: e.match as RegExp,
@@ -251,8 +271,13 @@ export class Parser<T, S = any>  {
         const matcher = this.LRMap.get(regKey)!
         return { 
             key:    key, 
+            id:     ulid(),
             multi:  multiDefault,
-            logic:  'NOP',
+            matchCnt: 0, 
+            logic:  'none',
+            logicGroup: -1,
+            logicIdx: -1,
+            logicLast: false,
             ignore: false, 
             type:   'RegExp',
             regexp: matcher.match as RegExp,
@@ -269,8 +294,15 @@ export class Parser<T, S = any>  {
     ): InternMatcher {
         const res: InternMatcher = { 
             key:    '__undef__', 
-            multi:  multiDefault, 
-            logic:  'NOP',
+            id:     ulid(),
+            multi:  multiDefault,
+            roundTrip:  0,
+            tries:      0,
+            matchCnt: 0, 
+            logic:  'none',
+            logicGroup: -1,
+            logicIdx: -1,
+            logicLast: false,
             ignore: false,
             type:   'unknown',
             regexp: undefined,
@@ -281,7 +313,7 @@ export class Parser<T, S = any>  {
         // Checks 
         let i = 0
         for (; i < e.length; i++ ) {
-            assert( e[i] !== undefined , `resolveExpectArray() got undefined match array[${i}] from '${ parent ? parent : 'unknown'}' parent - check your lexer regexp.`)
+            assert( e[i] !== undefined , `resolveExpectArray() got undefined match array[${i}] from '${ parent ? parent : 'unknown'}' parent - check your parser rules and lexer regexp.`)
         }
         assert( i > 0, `resolveExpectArray() got an empty match array from '${ parent ? parent : 'unknown'}' parent  - check your lexer regexp.`)
 
@@ -294,7 +326,7 @@ export class Parser<T, S = any>  {
                 if ( v.indexOf(':') > 0  ) { // Cardinality
                     res.multi = v as Cardinality
                 }
-                else if ( ['xor', 'ignore', 'NOP'].includes(v) ) { // Logical
+                else if ( ['or', 'xor', 'ignore', 'NOP', 'none'].includes(v) ) { // Logical
                     if ( v === 'ignore') 
                         res.ignore  = true
                     else
@@ -486,7 +518,8 @@ export class Parser<T, S = any>  {
             return ret
         }
         if ( this.debug && this.result.get(parentId)!.value !== this.always ) {
-            console.debug(`${this.getIndent(level+1)}TRY: ${this.result.get(parentId)!.value}.${iMatcher.key}(${level}) at ${this.pos} against: "${this.input.substring(this.pos,this.pos + 30).replace(/\n.*/mg, '')}"`)
+            // ${this.result.get(parentId)!.value}.
+            console.debug(Colors.blue(`${this.getIndent(level+1)}TRY: ${iMatcher.keyExt}(${level}) at ${this.pos} against: "${this.input.substring(this.pos,this.pos + 30).replace(/\n.*/mg, '')}"`))
         }
         // Run the iMatcher RegExp 
         const goingInPos = this.pos
@@ -494,10 +527,11 @@ export class Parser<T, S = any>  {
         this.setMatchPos( iMatcher.keyExt!, goingInPos )
        
         if ( res !== null ) {
-            if ( this.debug ) console.debug(`${this.getIndent(level+1)}MATCHED: ${iMatcher.key} at pos: ${this.pos} to ${iMatcher.regexp!.lastIndex}, matched: "${this.input.substring(this.pos,iMatcher.regexp!.lastIndex)}"`)
+            if ( this.debug ) 
+                console.debug(Colors.green(`${this.getIndent(level+1)}MATCHED: ${iMatcher.key} at pos: ${this.pos} to ${iMatcher.regexp!.lastIndex}, matched: "${this.input.substring(this.pos,iMatcher.regexp!.lastIndex)}"`) )
             // Handle position and line numbering
             this.col = this.pos - this.bol + 1
-            if ( iMatcher.key === 'NL' ) {
+            if ( iMatcher.key === 'NL' ) { // TODO: Make this configurable
                 this.line++
                 this.col = 1
                 this.bol = iMatcher.regexp!.lastIndex 
@@ -539,7 +573,8 @@ export class Parser<T, S = any>  {
                 ret.ignore = true
             }
 
-            // Check if the matched object has a LHS Parser entry and an expect group
+            // Check if the matched object RegExp name has a corresponding 
+            // LHS Parser entry with an expect group
             // If new match group(s), then call parse() recursively
             if ( 
                 this.pos > goingInPos && 
@@ -547,7 +582,7 @@ export class Parser<T, S = any>  {
                 ! this.alreadyMatched( iMatcher.keyExt!, this.pos)
 
             ) {// The matched Lexer object has a parser entry of its own
-                ret.foundToken  = this.parse(iMatcher.key as unknown as  T, id, level + 1, roundTrips + 1)
+                ret.foundToken  = this.parse(iMatcher.key as unknown as  T, id, level + 1, roundTrips)
             }
         }
         return ret
@@ -585,7 +620,7 @@ export class Parser<T, S = any>  {
             this.setMatchPos(name as string, entry.offset)
 
             // Adjust the overall match position
-            if ( this.debug ) console.debug(`${this.getIndent(level)}PR Skip ${entry.value}(${level}) adjust pos ${this.pos} to ${entry.offset} --> ${errMsg}`)
+            if ( this.debug ) console.debug( Colors.gray(`${this.getIndent(level+1)}PR Skip ${entry.value}(${level}) adjust pos ${this.pos} to ${entry.offset} --> ${errMsg}`) )
             this.pos = entry.offset
         }
         catch( err ) {
@@ -595,21 +630,18 @@ export class Parser<T, S = any>  {
 
     // Main Parser function
     parse ( token: T, parentId: string | undefined = undefined, level = 1, roundTrips = 1): boolean {
-        // Checks
-        if ( (token ?? 'undefined') === 'undefined' ) 
-            throw new Error(`Parse(): Undefined parser token: '${token}'`)
-        if ( ! this.PRMap.has( token + '' ) ) 
-            throw Error(`Parse(): Unknown parser token: '${token}'`)
+        const tokenStr =  token + ''
+        assert ( (token ?? 'undefined') !== 'undefined',`Parse(): Undefined parser token: '${token}'`)
+        assert( this.PRMap.has( tokenStr ),`Parse(): Unknown parser token: '${token}'`)
         if  ( this.EOF() ) {
             if ( this.debug ) 
-                console.debug(`${this.getIndent(level)}Parse() Skip ${token}(${level}) at ${this.pos} due to EOF `)
+                console.debug(Colors.gray(`${this.getIndent(level)}Parse Skip ${token}(${level}) at ${this.pos} due to EOF `) )
             return false
         }
 
-        const tokenName =  token + ''
-
-        if ( this.alreadyMatched( tokenName, this.pos ) ) {
-            if ( this.debug ) console.debug(`${this.getIndent(level)}Parse() Skips ${token}(${level}) at ${this.pos} (tried already)`)
+        if ( this.alreadyMatched( tokenStr, this.pos ) ) {
+            if ( this.debug ) 
+                console.debug(Colors.gray(`${this.getIndent(level)}Parse() Skips ${token}(${level}) at ${this.pos} (tried already)`))
             return false
         }
         //
@@ -621,40 +653,37 @@ export class Parser<T, S = any>  {
 
         const always = this.always as unknown as T 
         const eMap: ExpectMap = this.PRMap.get(token as unknown as string)!
-        const [pMin, pMax] = this.getMulti( eMap.multi ?? '0:m' )
+        const [tokenMin, tokenMax] = this.getMulti( eMap.multi ?? '0:m' )
         const hasCallback  = eMap.cb ?? false ? true : false
         let failBranch = false
-        let childFailed = false
         
-        if ( this.debug  && token + '' !== this.always ) {
-            console.debug(`${this.getIndent(level)}PARSE: ${ token + '' === this.prevToken ? 'retry ' : ''}${token}(${level})`)
+        if ( this.debug  && tokenStr !== this.always ) {
+            console.debug(`${this.getIndent(level)}PARSE: ${ tokenStr === this.prevToken ? 'retry ' : ''}${token}, roundTrip:${roundTrips}, level: ${level}`)
         }
-        this.prevToken = token + ''
+        this.prevToken = tokenStr
        
-        const goingInPos        = this.pos
-        let   lastPos           = this.pos 
-        let   xorGroupActive    = false
-        let   xorGroupWasActive = false
-        // let   xorMatched      = false
-        let  xorMatched: boolean[] = []
-        // let   xorGroupMatched = false
-        const xorGroups: XorGroup[] = []
-
-        let   validateXor = false
-
-        // Handle the hierarchy numbering     
+        const goingInPos         = this.pos
+        let   lastPos            = this.pos     
         const id = ulid()
+
+        const logicApplies =  this.logicMap.has(tokenStr)
+        let parentToken = '' 
+        if ( parentToken !== undefined && this.result.has(parentId!) ) {
+            parentToken = `${(this.result.get(parentId!) as MatchRecord).value}`
+        }
+        const logicKey    = `${parentToken}_${tokenStr}_${roundTrips}_${id}`
+        const logic = logicApplies ? new Logic( logicKey, this.logicMap.get(tokenStr)!.getCopy(), this.debug): undefined
+
         if ( this.topNode === undefined ) {
             this.topToken = token
             this.topNode = id
         }
-
         // create the match record for the token
         const tokenMatchRec = this.matchRecFac({
             id:   id,
             type: 'Token',
-            value: token + '',
-            text:  token + '',
+            value: tokenStr,
+            text:  tokenStr,
             offset: this.pos,
             parent: parentId 
         })
@@ -666,209 +695,169 @@ export class Parser<T, S = any>  {
         //
         // EXPECT OUTER LOOP
         // Do the matches of the expect groups entries
-        eMap.expect.every( ( iMatcher: InternMatcher, i: number ) => {  
+        // let xorGroupMatched = false
+        eMap.expect.every( ( _iMatcher: InternMatcher, i: number ) => { 
+            if ( this.EOF() ) return false
+            const iMatcher: InternMatcher = _.clone(_iMatcher)
             assert( iMatcher !== undefined, `eMap.expect.every(): Undefined iMatcher in 'expect array'`)
-            assert( iMatcher.key !== undefined || iMatcher.key !== 'undefined', `eMap.expect.every(): Undefined iMatcher.type in 'expect array'`)
+            assert( iMatcher.key !== undefined && iMatcher.key !== 'undefined', Colors.red(`eMap.expect.every(): Undefined iMatcher.key in 'expect array'`))
+            assert((iMatcher.key !== tokenStr || i > 0), Colors.red(`Left recursive reference: ${iMatcher.key} to own parent token position 0` ))
             const [min, max] = this.getMulti( iMatcher.multi )
-            iMatcher.keyExt = `${tokenName}.${iMatcher.key}`
-
-            // XOR Handling
-            if ( i == 0 ) { // Initialize
-                xorGroupActive = false
-                xorMatched = []
-                xorMatched.push(false)
-            }
-            xorGroupWasActive = xorGroupActive
-            xorGroupActive = ( iMatcher.xorGroup ?? -1 ) > -1
-
-            if ( xorGroupActive && xorMatched[ xorMatched.length -1 ] ) {
-                if ( this.debug )  {
-                    console.debug(`${this.getIndent(level)}XorGroup Skip ${token}.${iMatcher.key}(${level}) at ${this.pos} (group already matched)`)
-                }
-                return true
-            }
-
-            if ( ! xorGroupActive && xorGroupWasActive ) {
-                xorGroupWasActive = false
-                if ( ! xorMatched[ xorMatched.length -1 ] ) {
-                     // XOR group failed, so this branch fails
-                     this.failBranch(id, `No match found in ${token} XOR group: ${xorMatched.length -1} at roundtrip: ${roundTrips}`, level)
-                     failBranch = true
-                }
-            }
-
-            // Handle iMathcer that has already been matched
-            if ( this.alreadyMatched( iMatcher.keyExt, this.pos ) ) {
-                if ( this.debug  && token + '' !== this.always )  {
-                    console.debug(`${this.getIndent(level+1)}LR Skip ${token}.${iMatcher.key}(${level}) at ${this.pos} (tried already)`)
-                }
-                if ( min > 0 &&           // symbol or pattern is mandatory
-                     ! xorGroupActive &&  // we are not dealing with an xor grouping that must be evaluated later
-                     roundTrips === 1     // this is the first time in so the mandatory match has not already succeded
-                )  {
-                    this.failBranch(id, `Missing mandatory match for ${token}.${iMatcher.key} at
-                     roundtrip: ${roundTrips}`, level)
-                    failBranch = true
-                }
-            }
-            
-            if ( ! failBranch ) {
-                // Handle parser non-regexp grouping symbols by doing a recursive call
-                if ( iMatcher.regexp === undefined ) {  
-                    // Do a recursive call or a match if the match entry is a user defined token 
-                    if ( ! this.alreadyMatched( iMatcher.keyExt, this.pos) ) {
-                        childFailed = this.parse( iMatcher.key as unknown as T, id, level + 1, roundTrips + 1 )
-                        //
-                        // If mandatory child Failed 
-                        if ( childFailed ) {    // Child failed
-                            if ( ! xorGroupActive ) {    // we are not dealing with an xor grouping that must be evaluated later
-                                if ( 
-                                    min > 0 &&          // symbol or pattern is mandatory
-                                    roundTrips === 1    // this is the first time in so the mandatory match has not already succeded
-                                ) {
-                                    // Mandatory child failed, so this branch fails
-                                    this.failBranch(id, `Missing mandatory child match for ${token}.${iMatcher.key} at roundtrip: ${roundTrips}`, level)
-                                    failBranch = true
-                                }
-                                else { // we are dealing with an xor grouping
-                                    if ( this.debug ) console.debug(`${this.getIndent(level)}${token} at roundtrip: ${roundTrips}`)
-                                }
-                            }
-                        }
-                    }
-                    
+            iMatcher.id        =   id
+            iMatcher.keyExt    = `${tokenStr}.${iMatcher.key}`
+            iMatcher.roundTrip = roundTrips
+            //
+            // NON-TERMINAL SYMBOLS
+            // Handle parser non-regexp grouping symbols by doing a recursive call
+            if ( iMatcher.regexp === undefined ) {  
+                //
+                // NON-TERMINAL SYMBOLS
+                // Do a recursive call for the user defined non-terminal token 
+                if ( this.alreadyMatched( iMatcher.keyExt, this.pos) ) {
+                    if ( this.debug ) 
+                        console.debug(`${this.getIndent(level)}parse() SKIP: ${iMatcher.key}(${level}) at ${this.pos} ALREADY TRIED against: "${this.input.substring(this.pos,this.pos + 30).replace(/\n.*/mg, '')}"`)
                 }
                 else {
-                    // RHS INNER REPEAT LOOP for regexp matching
-                    let match: Matched = { foundToken: false, id: undefined, ignore: false}
-                    let count = 0 
-                    do {
-                        // Handling White space/ newline entries
-                        if ( token !== always ) { 
-                            this.parse( always, id, level )
-                            tokenMatchRec.offset = this.pos
-                            this.result.get(id)!.offset = this.pos 
+                    const childFailed = this.parse( iMatcher.key as unknown as T, id, level + 1, roundTrips )
+                    iMatcher.tries++
+
+                    if ( logic ) logic!.setIMatch( iMatcher, !childFailed)
+
+                    // Check If a mandatory child has failed 
+                    if (  
+                        childFailed && 
+                        roundTrips === 1 && // this is not an additional retry after success
+                        ! logicApplies      // This is not part of some logic e.g. XOR group
+                    ) { 
+                        if ( min > 0 && tokenMin > 0 ) {  // Mandatory child failed, so this branch fails
+                            this.failBranch(id, `Missing mandatory child match for ${token}.${iMatcher.key} at roundtrip: ${roundTrips}`, level)
+                            failBranch = true
+                        }  
+                    }
+
+                    if ( logicApplies && iMatcher.logicGroup > -1  ) {
+                        if ( iMatcher.logicLast ) {
+                            // If this is the last token within a logic group 
+                            // then we test the group
+                            if ( ! logic!.isMatched(iMatcher.logicGroup, roundTrips) && // Logic Group failed 
+                                  tokenMin > 0            // and the parent token is not allowed to fail
+                            ) {
+                                this.failBranch(id, `Missing mandatory Logic group match for ${token}.${iMatcher.key} at roundtrip: ${roundTrips}`, level)
+                                failBranch = true
+                            }
                         }   
-                        lastPos = lastPos < this.pos ? this.pos : lastPos 
-
-                        //  Do the actual match, taking the cardinality into account
-                        iMatcher.parent = id
-                        if ( ! this.alreadyMatched(iMatcher.keyExt, this.pos ) ) {
-                            match = this.doMatch(iMatcher, id, level, roundTrips)
-
-                            // Remember the match
-                            if ( match.foundToken ) {
-                                assert( match.id !== undefined , `Match id is not set in: ${JSON.stringify(match)}`) 
-                                if ( ! match.ignore ) this.result.get( id )!.children.push( match.id! )
-                                count++
-                                if ( xorGroupActive ) xorMatched[iMatcher.xorGroup!] = true
-                            }
-                            else { 
-                                if ( xorGroupActive ) {
-                                    xorMatched[iMatcher.xorGroup!] = false
-                                }
-                            }
-                            // Match validation
-                            // Check if currently active xorGroup has failed - if so fail and exit the branch
-                            if ( validateXor ) {
-                                validateXor     = false
-                                if ( ! xorGroups[ xorGroups.length -1 ].isMatched() ) {
-                                    this.failBranch(id, `xor match constraint is violated for ${iMatcher.keyExt}`, level)
-                                    failBranch = true
-                                    break
-                                }
-                            }
-                            // We may have a normal (non-xor) mandatory match that failed - if so fail and exit the branch
-                            if ( iMatcher.logic !== 'xor' && !xorGroupActive ) {
-                                // match count validation 
-                                if ( count <= min  ) {
-                                    if ( min > 0 && ! validateXor && ! match.foundToken ) {
-                                        // fail branch
-                                        this.failBranch(id, `To few matches for ${iMatcher.keyExt} with count: ${count}`, level)
-                                        failBranch = true
-                                        break
-                                    }
-                                } 
-                                else if ( count > max ) {
-                                        // fail branch
-                                        this.failBranch(id, `To many matches for ${iMatcher.keyExt} with count: ${count}`, level)
-                                        failBranch = true
-                                        break
-                                }
-                            }
-                        }
-                        // this.setMatchPos(iMatcher.keyExt, lastPos )
-                    } while ( 
-                        match.foundToken && 
-                        count < max      && 
-                        !failBranch      && 
-                        ! this.EOF() 
-                    )
-
-                    // Final Evaluation of match count
-                    if ( roundTrips <= pMin && ! xorGroupActive && ( ( count > max || count < min ) ) ) { 
-                        // Fail this branch of matching due to failed cardinality constraint
-                        this.failBranch(id, `Failed match count: ${count} for ${iMatcher.keyExt} at roundtrip: ${roundTrips}`, level)
-                        failBranch = true
                     }
-
-                    if ( failBranch ) {
-                        if ( this.debug ) console.debug(`${this.getIndent(level)}TRY_END: ${token}(${level}).${iMatcher.key}`)
-                    }
-                    else {
-                        if ( parentId ) {
-                            this.result.get(parentId)!.matched = true
-                        }
-                        if (count > this.maxCount ) this.maxCount = count
-                    }
-                    
-                } 
+                }
             }
+            else {
+                //
+                // TERMINAL SYMBOLS
+                // RHS INNER LOOP for regexp matching
+                //
+                let match: Matched = { foundToken: false, id: undefined, ignore: false}
+                let matchCnt = 0
+                let loopCnt  = 0
+                iMatcher.roundTrip = roundTrips
+                iMatcher.parent = id
+                do {
+                    iMatcher.tries = ++loopCnt
+                    // Handling White space/ newline entries
+                    if ( token !== always ) { 
+                        this.parse( always, id, level )
+                        tokenMatchRec.offset = this.pos
+                        this.result.get(id)!.offset = this.pos 
+                    }   
+                    lastPos = lastPos < this.pos ? this.pos : lastPos
+                    //
+                    //  Do the actual match, taking the cardinality into account
+                    //
+                    if ( ! this.alreadyMatched(iMatcher.keyExt, this.pos ) ) {
+                        // Main match function
+                        match = this.doMatch(iMatcher, id, level, roundTrips)
+                        iMatcher.tries++
+
+                        // Remember the match
+                        if ( match.foundToken ) {
+                            assert( match.id !== undefined , `Match id is not set in: ${JSON.stringify(match)}`) 
+                            iMatcher.matchCnt = ++matchCnt  
+                            if ( ! match.ignore ) this.result.get( id )!.children.push( match.id! )
+                        }
+                           
+                        // Remember any Logic, if applicable
+                        if ( logicApplies ) {
+                            logic!.setIMatch(iMatcher, match.foundToken)
+                        }
+
+                        // Match validation
+                        // Step 1: Check if currently active Logic Group has failed
+                        // if so, fail and exit the whole branch
+                        if ( iMatcher.logicGroup > -1  ) {
+                            if ( iMatcher.logicLast ) {
+                                if ( ! logic!.isMatched(iMatcher.logicGroup, roundTrips)  ) {
+                                    if ( matchCnt < min ) {
+                                        this.failBranch(id, `Logic match constraint is violated for ${iMatcher.keyExt}`, level)
+                                        failBranch = true
+                                    }
+                                }
+                            }
+                        }
+                    } 
+                }
+                while ( 
+                    match.foundToken && 
+                    matchCnt < max      && 
+                    !failBranch      && 
+                    ( iMatcher.logicGroup < 0 || min > 1 ) &&
+                    ! this.EOF() 
+                ) 
+                //
+                // Final Evaluation of match count
+                if ( iMatcher.logicGroup < 0 &&  ( matchCnt > max || matchCnt < min ) ) { 
+                    // Fail this branch of matching due to failed cardinality constraint
+                    this.failBranch(id, `Failed match count: ${matchCnt} for ${iMatcher.keyExt} at roundtrip: ${roundTrips}`, level)
+                    failBranch = true
+                }
+
+                if ( failBranch ) {
+                    if ( this.debug ) console.debug(`${this.getIndent(level)}TRY_END: ${token}(${level}).${iMatcher.key}`)
+                }
+                else {
+                    if (matchCnt > this.maxCount ) this.maxCount = matchCnt
+                }
+            } 
             return !failBranch 
         });
 
-        // Final evaluation of XOR-Group
-        if ( ! xorGroupActive && xorGroupWasActive ) {
-            xorGroupWasActive = false
-            if ( ! xorMatched[ xorMatched.length -1 ] ) {
-                 // XOR group failed, so this branch fails
-                 this.failBranch(id, `No match found in ${token} XOR group: ${xorMatched.length -1} at roundtrip: ${roundTrips}`, level)
-                 failBranch = true
-            }
-        }
 
-        if ( ! failBranch ) {
-            // TODO: Check the matched condition below - is this correct
-            // After passing all the above checks: 
-            // if the rule's mandatory expect tokens 
-            // has matched then main object has matched
-            tokenMatchRec.children!.forEach( (_id: string)  =>  {
-                const mr = this.result.get( _id)! 
-                if ( mr && mr.matched ) {
-                    tokenMatchRec.matched = true
-                }
-            })
-        }
-
-        // If definedFinally, call the ParserRules token callback cb( curretMatchRecored, userDefinedScopeObject)
+        //
+        // Token level Evaluation of the current Expect group
+        //
+        // const failToken = ( roundTrips - 1) >= tokenMin ? false : failBranch
+        this.result.get(id)!.matched = ! failBranch
+        
+        // If defined, call the ParserRules token callback cb( curretMatchRecored, userDefinedScopeObject)
         if ( ! failBranch && hasCallback ) {
             eMap.cb!( tokenMatchRec, this.scope as S )
         }
 
-        this.setMatchPos(tokenName, goingInPos)
+        this.setMatchPos(tokenStr, goingInPos)
+
+        // const progress =  this.pos > goingInPos
+        // const belowMax =  roundTrips + 1 <= tokenMax
 
         // Check whether to retry the current symbol.
-        if  (                            // When to retry the same match pattern
-              this.pos > goingInPos &&   // we have progress
-              ! failBranch &&            // the branch did not fail
-              roundTrips + 1 <= pMax &&  // we are below the allowed maximum number of matches
-              ! this.EOF()               // and not at EOF
+        if  (                               // When to retry the same match pattern
+              this.pos > goingInPos &&      // we have progress
+              ! failBranch &&               // the branch did not fail
+              roundTrips + 1 <= tokenMax && // we are below the allowed maximum number of matches
+              ! this.EOF()                  // and not at EOF
             ) {
             // Retry the same token for more matches 
             if ( this.debug ) console.log(`${this.getIndent(level)}RETRY token: ${token}`)
             this.parse( token, id, level + 1, roundTrips + 1 )
         }
       
+        // In case we did not parse the whole input string:
         // Parser Error message with pointer to the specific 
         // line and position in the input where the parsing failed.
         if ( firstSymbol && this.pos < this.input.length ) {
@@ -884,7 +873,7 @@ export class Parser<T, S = any>  {
             throw Error( `Parse was imcomplete: ${this.pos} < ${this.input.length} (length of input)`)
         }
 
-        if ( this.debug  && token + '' !== this.always ) console.debug( ( `${this.getIndent(level)}ENDED: ${token}(${level})`)) 
+        if ( this.debug  && tokenStr !== this.always ) console.debug( ( `${this.getIndent(level)}PARSE_END: ${token}(${level})`)) 
         return failBranch
     }
 }
