@@ -1,5 +1,6 @@
 import { assert } from "https://deno.land/std/testing/asserts.ts";
 import { InternMatcher, LogicDescriptor } from "./interfaces.ts";
+import { _ } from "./lodash.ts";
 // import * as jp  from "npm:jsonpath"
 
 /* 
@@ -27,10 +28,13 @@ export class Logic {
         if ( ! this.logicGroups[ld.group] ) this.logicGroups[ld.group] = []
         if ( ! this.logicGroups[ld.group][ld.roundTrip] ) this.logicGroups[ld.group][ld.roundTrip] = []
     
-        if ( this.debug && ld.matched ) {
+        /*
+        if ( this.debug ) {
             console.debug( `setMatch() for token ${this.token}`) 
             console.debug(` ==> ${JSON.stringify(ld)}`)
         }
+        */ 
+
         if ( this.logicGroups[ld.group][ld.roundTrip].length === 0 ) {
             assert( ld.logic !== 'NOP', `Logic in group for ${this.token} - first entry cannot be 'NOP'`)
             this.logicGroups[ld.group][ld.roundTrip].push(ld)
@@ -77,11 +81,13 @@ export class Logic {
         catch (err) { 
             console.error(err)
         }
-
         return res
     }
 
     getCopy() {
-        return JSON.parse(JSON.stringify(this.logicGroups)) as typeof this.logicGroups
+        // console.debug( `GET Logic Groups for ${this.token}:`)
+        // const logicGroups = JSON.stringify(this.logicGroups)
+        // console.debug( `${logicGroups}\n----------------------`)
+        return _.clone(this.logicGroups) as typeof this.logicGroups
     }
 }

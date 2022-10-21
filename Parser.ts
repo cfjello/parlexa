@@ -4,7 +4,7 @@ import { ulid } from "https://raw.githubusercontent.com/ulid/javascript/master/d
 import { HierarKey } from "https://deno.land/x/hierarkey@v1.0/mod.ts"
 import { assert } from "https://deno.land/std@0.113.0/testing/asserts.ts";
 import { _ } from './lodash.ts';
-import { Cardinality, Expect, ExpectEntry, Logical, Matched, MatchRecord, InternMatcher, XorGroup, Matcher, LexerRules, ParserRules, Info, ShortExpectEntry, Callback, MatchRecordExt, LogicDescriptor } from "./interfaces.ts"
+import { Cardinality, Expect, ExpectEntry, Logical, Matched, MatchRecord, InternMatcher, Matcher, LexerRules, ParserRules, Info, ShortExpectEntry, Callback, MatchRecordExt, LogicDescriptor } from "./interfaces.ts"
 import { ExpectMap } from "./interfaces.ts";
 import * as Colors from "https://deno.land/std/fmt/colors.ts" 
 import { Logic } from "./Logic.ts";
@@ -186,7 +186,8 @@ export class Parser<T, S = any>  {
         if ( m.logic !== 'none' ) {
             if ( ! this._logicActive ) { 
                 // Initialize new group when encountering FIRST member of a logic group
-                if ( ! this.logicMap.has( token ) ) this.logicMap.set(token, new Logic(token))
+                const exist = this.logicMap.has( token )
+                if ( ! exist ) this.logicMap.set(token, new Logic(token))
                 this._logicActive = true
                 this._logicGroup  = this.logicMap.get(token)!.getLength()
                 this._logicIdx    = -1    
@@ -205,6 +206,7 @@ export class Parser<T, S = any>  {
                 m.logicLast  = true
                 this._logicActive = false
                 this.logicMap.get(token)!.setMatch({ key: m.key, group: m.logicGroup, idx: m.logicIdx, logic: m.logic, roundTrip:0, tries: 0,  matched: false, matchCnt: 0 })
+                // console.debug(`Created Logic -> ${token}: ${JSON.stringify(this.logicMap.get(token))}`)
             }
             else {
                 // NO active logic group 
@@ -638,12 +640,6 @@ export class Parser<T, S = any>  {
                 console.debug(Colors.gray(`${this.getIndent(level)}Parse Skip ${token}(${level}) at ${this.pos} due to EOF `) )
             return false
         }
-
-        if ( this.alreadyMatched( tokenStr, this.pos ) ) {
-            if ( this.debug ) 
-                console.debug(Colors.gray(`${this.getIndent(level)}Parse() Skips ${token}(${level}) at ${this.pos} (tried already)`))
-            return false
-        }
         //
         // Initialize
         //
@@ -666,13 +662,31 @@ export class Parser<T, S = any>  {
         let   lastPos            = this.pos     
         const id = ulid()
 
-        const logicApplies =  this.logicMap.has(tokenStr)
+        
         let parentToken = '' 
         if ( parentToken !== undefined && this.result.has(parentId!) ) {
             parentToken = `${(this.result.get(parentId!) as MatchRecord).value}`
         }
-        const logicKey    = `${parentToken}_${tokenStr}_${roundTrips}_${id}`
-        const logic = logicApplies ? new Logic( logicKey, this.logicMap.get(tokenStr)!.getCopy(), this.debug): undefined
+        const tokenExt =  ( parentToken !== '' ?  `${parentToken}.` : '' ) + tokenStr 
+ 
+        if ( this.alreadyMatched( tokenExt, this.pos ) ) {
+            if ( this.debug ) 
+                console.debug(Colors.gray(`${this.getIndent(level)}Parse() Skips ${token}(${level}) at ${this.pos} (tried already)`))
+            return false
+        }
+        else {
+            this.setMatchPos(tokenExt, goingInPos)
+        }
+
+        const logicApplies =  this.logicMap.has(tokenStr)
+        let logicKey = ''
+        let logic = undefined
+        if ( logicApplies ) {
+            logicKey    = `${parentToken}_${tokenStr}_${roundTrips}_${id}`
+            // let logic = logicApplies ? new Logic( logicKey, this.logicMap.get(tokenStr)!.getCopy(), this.debug): undefined
+            this.logicMap.set( `${parentToken}_${tokenStr}_${roundTrips}_${id}`, new Logic( logicKey, this.logicMap.get(tokenStr)!.getCopy() ) )
+            logic =  this.logicMap.get( `${parentToken}_${tokenStr}_${roundTrips}_${id}` )
+        }
 
         if ( this.topNode === undefined ) {
             this.topToken = token
@@ -721,7 +735,7 @@ export class Parser<T, S = any>  {
                     const childFailed = this.parse( iMatcher.key as unknown as T, id, level + 1, roundTrips )
                     iMatcher.tries++
 
-                    if ( logic ) logic!.setIMatch( iMatcher, !childFailed)
+                    if ( logic ) logic.setIMatch( iMatcher, !childFailed)
 
                     // Check If a mandatory child has failed 
                     if (  
@@ -794,7 +808,10 @@ export class Parser<T, S = any>  {
                         if ( iMatcher.logicGroup > -1  ) {
                             if ( iMatcher.logicLast ) {
                                 if ( ! logic!.isMatched(iMatcher.logicGroup, roundTrips)  ) {
-                                    if ( matchCnt < min ) {
+                                    if ( matchCnt < min && // Logic Group failed 
+                                         tokenMin > 0     // and the parent token is not allowed to fail) 
+                                    ) 
+                                    {
                                         this.failBranch(id, `Logic match constraint is violated for ${iMatcher.keyExt}`, level)
                                         failBranch = true
                                     }
@@ -812,10 +829,10 @@ export class Parser<T, S = any>  {
                 ) 
                 //
                 // Final Evaluation of match count
-                if ( iMatcher.logicGroup < 0 &&  ( matchCnt > max || matchCnt < min ) ) { 
-                    // Fail this branch of matching due to failed cardinality constraint
-                    this.failBranch(id, `Failed match count: ${matchCnt} for ${iMatcher.keyExt} at roundtrip: ${roundTrips}`, level)
-                    failBranch = true
+                if ( iMatcher.logicGroup < 0 && ( matchCnt > max || matchCnt < min ) ) {
+                        // Fail this branch of matching due to failed cardinality constraint
+                        this.failBranch(id, `Failed match count: ${matchCnt} for ${iMatcher.keyExt} at roundtrip: ${roundTrips}`, level)
+                        failBranch = true
                 }
 
                 if ( failBranch ) {
@@ -827,34 +844,36 @@ export class Parser<T, S = any>  {
             } 
             return !failBranch 
         });
-
-
         //
-        // Token level Evaluation of the current Expect group
+        // Token level Evaluation 
         //
-        // const failToken = ( roundTrips - 1) >= tokenMin ? false : failBranch
-        this.result.get(id)!.matched = ! failBranch
+        const progress  = this.pos > goingInPos
+        const rtOffset  = failBranch ? -1 : -0 
+        const inRange   = (roundTrips + rtOffset) >= tokenMin && (roundTrips + rtOffset) <= tokenMax
+        const matched   = progress && inRange
+
+        this.result.get(id)!.matched = matched
         
-        // If defined, call the ParserRules token callback cb( curretMatchRecored, userDefinedScopeObject)
-        if ( ! failBranch && hasCallback ) {
+        // If defined, call the ParserRules token callback: cb( curretMatchRecord, userDefinedScopeObject)
+        if ( matched && hasCallback ) {
             eMap.cb!( tokenMatchRec, this.scope as S )
         }
+        // this.setMatchPos(tokenExt, goingInPos)
 
-        this.setMatchPos(tokenStr, goingInPos)
-
-        // const progress =  this.pos > goingInPos
-        // const belowMax =  roundTrips + 1 <= tokenMax
-
-        // Check whether to retry the current symbol.
-        if  (                               // When to retry the same match pattern
-              this.pos > goingInPos &&      // we have progress
-              ! failBranch &&               // the branch did not fail
-              roundTrips + 1 <= tokenMax && // we are below the allowed maximum number of matches
-              ! this.EOF()                  // and not at EOF
-            ) {
-            // Retry the same token for more matches 
+        // Check whether to retry the current symbol:
+        //  - the branch did not fail
+        //  - we are below the allowed maximum number of matches
+        //  - and not at EOF
+        const proceed = matched && roundTrips < tokenMax && ! this.alreadyMatched(tokenExt, this.pos ) && ! this.EOF() 
+        if ( tokenStr === 'reset' ) {
+            this.debugHook = 1
+        }
+        if  ( proceed ) {
+            // Retry the same token for additional matches 
+            logic = undefined
+            this.logicMap.delete(logicKey)
             if ( this.debug ) console.log(`${this.getIndent(level)}RETRY token: ${token}`)
-            this.parse( token, id, level + 1, roundTrips + 1 )
+            this.parse( token, id, level, roundTrips + 1 )
         }
       
         // In case we did not parse the whole input string:

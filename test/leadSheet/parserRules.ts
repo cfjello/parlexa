@@ -97,10 +97,10 @@ export const PR: ParserRules<Keys<ParserTokens, typeof LR>> = {
         multi: '1:m',
         expect: [
             [ LR.REPEAT_COUNT, '0:m'],
-            [ LR.CHORD_NOTE , '0:1', 'or'],
-            [ LR.REST,        '0:1', 'or'],
-            [ LR.REPEAT_LAST, '0:1', 'or'],
-            [ LR.SQ_BRACKET,  '0:1', 'or'],
+            [ LR.CHORD_NOTE , '0:1', 'xor'],
+            [ LR.REST,        '0:1', 'xor'],
+            [ LR.REPEAT_LAST, '0:1', 'xor'],
+            [ LR.SQ_BRACKET,  '0:1', 'xor'],
             [ LR.REPEAT_END,  '0:1' ]
         ]
     },

@@ -59,9 +59,9 @@ export const PR: ParserRules<Keys<ParserTokens, typeof LR>> = {
     // A basic type identifier or type object 
     typeEntry : {
         expect: [
-            [LR.IDENT,  '0:1', 'xor'],
-            ['qoutedIdent', '0:1', 'xor'],
-            ['typeObj', '0:1' ]
+            [LR.IDENT,  '1:1', 'xor'],
+            ['qoutedIdent', '1:1', 'xor'],
+            ['typeObj', '1:1' ]
         ]
     },
     typeLogicList:  {
@@ -86,7 +86,7 @@ export const PR: ParserRules<Keys<ParserTokens, typeof LR>> = {
             ['typeEntry', '1:1' ],
             ['typeLogicList', '0:m'],
             [LR.ROUND_END, '0:1'],
-            ['typeDefList', '0:m' ],
+            // ['typeDefList', '0:m' ],
         ]
     },
     typeObjDef: {

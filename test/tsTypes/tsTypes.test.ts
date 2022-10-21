@@ -23,7 +23,7 @@ Deno.test({
 })
 
 Deno.test({
-    name: '01 - Parser can read Type AND and OR Logic ', 
+    name: '01 - Parser can read TYPE AND and OR Logic ', 
     fn: () => {  
         const typeStr = `NoteType | OtherType & ThirdType`
         const parser = new Parser( LR, PR, 'typeDef')
@@ -40,7 +40,7 @@ Deno.test({
 })
 
 Deno.test({
-    name: '02 - Parser can read Grouped Type AND and OR Logic ', 
+    name: '02 - Parser can read Grouped TYPE AND and OR Logic ', 
     fn: () => {  
         const typeStr = `(NoteType | OtherType) & ThirdType  | ( FifthType & EightsType)`
         const parser = new Parser( LR, PR, 'typeDef')
@@ -65,7 +65,7 @@ Deno.test({
 })
 
 Deno.test({
-    name: '03 - Parser can assign Grouped Type AND and OR Logic ', 
+    name: '03 - Parser can assign Grouped TYPE AND and OR Logic ', 
     fn: () => {  
         const typeStr = `type MyType  = (NoteType | OtherType) & ThirdType  | ( FifthType & EightsType)`
         const parser = new Parser( LR, PR, 'reset')
@@ -90,7 +90,7 @@ Deno.test({
 })
 
 Deno.test({
-    name: '04 - Parser can read an Angled and nested type definition', 
+    name: '04 - Parser can read an Angled and nested TYPE definition', 
     fn: () => {  
         const  typeStr = `Map< string, SomeType>`
         const parser = new Parser( LR, PR, 'typeEntry')
@@ -110,7 +110,7 @@ Deno.test({
 })
 
 Deno.test({
-    name: '05 - Parser can read an Angled and nested type definition', 
+    name: '05 - Parser can read an Angled and nested TYPE definition', 
     fn: () => {  
         const typeStr = `Map< (NoteType | OtherType) & ThirdType , ThirdType> | ( FifthType & EightsType)`
         const parser = new Parser( LR, PR, 'typeDef')
@@ -129,7 +129,7 @@ Deno.test({
 })
 
 Deno.test({
-    name: '06 - Parser can read an Angled and nested type definition', 
+    name: '06 - Parser can read an Angled and nested TYPE definition', 
     fn: () => {  
         const typeStr = `type MyType = Map< (NoteType | OtherType) & ThirdType , ThirdType  | ( FifthType & EightsType)>`
         const parser = new Parser( LR, PR, 'reset')
@@ -153,7 +153,7 @@ Deno.test({
 })
 
 Deno.test({
-    name: '07 - Parser can fail on bad type definition', 
+    name: '07 - Parser can fail on bad TYPE definition', 
     fn: () => {  
         const typeStr = `type MyType = Map< (NoteType | OtherType & ThirdType , ThirdType  | ( FifthType & EightsType)>`
         try {
@@ -170,7 +170,7 @@ Deno.test({
 })
 
 Deno.test({
-    name: '08 - Parser can read simple type Object', 
+    name: '08 - Parser can read simple TYPE Object', 
     fn: () => {  
         const typeStr = `    
         export type  NoteEntry = { v: NoteType, i: boolean}
@@ -189,7 +189,7 @@ Deno.test({
 })
 
 Deno.test({
-    name: '09 - Parser can read a larger multi line  type Object', 
+    name: '09 - Parser can read a larger multi line TYPE Object', 
     fn: () => {  
         const typeStr = `
         export type ChordType09 = { 
@@ -221,7 +221,7 @@ Deno.test({
 })
 
 Deno.test({
-    name: '10 - Parser can read a nested type Object', 
+    name: '10 - Parser can read a nested TYPE Object', 
     fn: () => {  
         const typeStr = `
         export type ChordType10 = { 

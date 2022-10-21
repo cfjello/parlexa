@@ -5,7 +5,6 @@ import  LR  from "./lexerRules.ts"
 import { PR } from "./parserRules.ts"
 export interface PIndexable { [key: string]: any }
 
-
 Deno.test({
     name: '01 - Parser can read a header Title and Auther', 
     fn: () => {  
@@ -66,6 +65,7 @@ Deno.test({
     sanitizeOps: false
 })
 
+/*
 Deno.test({
     name: '04 - Parser can provide a parser tree iterator', 
     fn: () => {  
@@ -82,3 +82,4 @@ Deno.test({
     sanitizeResources: false,
     sanitizeOps: false
 })
+*/ 
