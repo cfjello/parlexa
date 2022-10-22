@@ -2,9 +2,5 @@
 /old
 res.out
 /test/out.txt
-examples/tsTypes/parserRulesClass.ts
 debug.ts
-test/recursion/lexerRules.ts
 .gitignore
-test/recursion/recursion.test.ts
-test/recursion/parserRules.ts
