@@ -27,13 +27,6 @@ export class Logic {
     setMatch( ld: LogicDescriptor) {
         if ( ! this.logicGroups[ld.group] ) this.logicGroups[ld.group] = []
         if ( ! this.logicGroups[ld.group][ld.roundTrip] ) this.logicGroups[ld.group][ld.roundTrip] = []
-    
-        /*
-        if ( this.debug ) {
-            console.debug( `setMatch() for token ${this.token}`) 
-            console.debug(` ==> ${JSON.stringify(ld)}`)
-        }
-        */ 
 
         if ( this.logicGroups[ld.group][ld.roundTrip].length === 0 ) {
             assert( ld.logic !== 'NOP', `Logic in group for ${this.token} - first entry cannot be 'NOP'`)
@@ -69,14 +62,7 @@ export class Logic {
             else if ( logic === 'or' )
                 res = ( matches.length > 0 )
             else if ( logic === 'xor' )
-                res = ( matches.length == 1 )  // TODO: shoulc be == 1  fix this to work in the recursive parser.parse() context
-            /*
-            if ( this.debug && ! res ) {
-                console.debug(`logic: ${this.logicGroups[group][roundTrip][0].logic}`)
-                console.debug(`matches: ${JSON.stringify(matches)}`)
-                console.debug( `logic group: ${JSON.stringify(this.logicGroups[group][roundTrip])}`)
-            }
-            */
+                res = ( matches.length == 1 )
         }
         catch (err) { 
             console.error(err)
@@ -85,9 +71,6 @@ export class Logic {
     }
 
     getCopy() {
-        // console.debug( `GET Logic Groups for ${this.token}:`)
-        // const logicGroups = JSON.stringify(this.logicGroups)
-        // console.debug( `${logicGroups}\n----------------------`)
         return _.clone(this.logicGroups) as typeof this.logicGroups
     }
 }

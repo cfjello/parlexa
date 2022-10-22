@@ -38,9 +38,9 @@ export const PR: ParserRules<Keys<ParserTokens, typeof LR>> = {
     qoutedIdent: {
         multi: '0:1',
         expect: [
-            [LR.STR1, '0:1', 'xor'],
-            [LR.STR2,  '0:1', 'xor'],
-            [LR.STR3, '0:1']
+            [LR.STR1, '1:1', 'xor'],
+            [LR.STR2,  '1:1', 'xor'],
+            [LR.STR3, '1:1']
         ]
     },
     typeList:  {

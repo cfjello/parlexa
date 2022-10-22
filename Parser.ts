@@ -748,7 +748,7 @@ export class Parser<T, S = any>  {
                             failBranch = true
                         }  
                     }
-
+                    
                     if ( logicApplies && iMatcher.logicGroup > -1  ) {
                         if ( iMatcher.logicLast ) {
                             // If this is the last token within a logic group 

@@ -58,7 +58,6 @@ Deno.test({
 
         const eightsType = tree.filter( v => v.value === 'EightsType' )
         assertEquals( eightsType[0].value,'EightsType' )
-
     },
     sanitizeResources: false,
     sanitizeOps: false
