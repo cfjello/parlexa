@@ -1,4 +1,4 @@
-# Parlexa for DENO - Prototype
+# Parlexa for DENO
 
 Parlexa is a Lexer and Parser in Deno that takes advantage of TypeScript's type system to provide an tight integration between the two. It also does not require you to do any generation steps, instead it runs directly after importing the Lexer and Parser rules.
 
