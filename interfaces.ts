@@ -94,6 +94,7 @@ export type InternMatcher = {
     type:       string,
     regexp?:    RegExp,
     lRRef:      RegExp | Matcher,
+    cbLex?:     Callback,
     cb?:        Callback,
     parent?:    string,
     keyExt?:    string

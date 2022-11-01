@@ -6,7 +6,14 @@ const LR: LexerRules = {
     IDENT:      XRegExp( '(?<value>\\p{L}[\\p{L}0-9]*)', 'xuig' ),
     INT:        XRegExp( '(?<value>[0-9]+)', 'xug' ),
     STR:        XRegExp( '[\'"](?<value>[^\'"\\n]+)[\'"]', 'xuig' ),
-    LET:        XRegExp( '(?<value>let[\\t ]+)', 'xug' ),
+    LET:        {   
+                match: XRegExp( '(?<value>let[\\t ]+)', 'xug' ),
+                    // deno-lint-ignore no-explicit-any
+                cb: (e: any) => {
+                    e.cbResponse  = 'LET callback was here'
+                    return e
+                }
+    },
     SET:        XRegExp( '(?<value>set[\\t ]+)', 'xug' ),
     EXPORT:     XRegExp( '(?<value>export)', 'xug' ),
     TYPE:       XRegExp( '(?<token>type)', 'xug' ),

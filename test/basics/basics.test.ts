@@ -162,3 +162,20 @@ Deno.test({
     sanitizeResources: false,
     sanitizeOps: false
 })
+
+Deno.test({
+    name: '08 - Lexer can call match callback function', 
+    fn: () => {  
+        const input = `     let øæå  = [1234]`
+        const parser = new Parser( LR, PR, 'reset')
+        parser.debug = false
+        parser.reset(input)
+        const tree = parser.getParseTree()
+        // deno-lint-ignore no-explicit-any
+        const matcher : any[] = tree.filter( v => v.type === 'LET' )
+        // console.debug(`${JSON.stringify(matcher,undefined,2)}`)
+        assertEquals( matcher[0].cbResponse,'LET callback was here')
+    },
+    sanitizeResources: false,
+    sanitizeOps: false
+})

@@ -1,5 +1,5 @@
 // @deno-types='https://deno.land/x/xregexp/types/index.d.ts'
-import XRegExp, { match } from  'https://deno.land/x/xregexp/src/index.js'
+import XRegExp from  'https://deno.land/x/xregexp/src/index.js'
 import { ulid } from "https://raw.githubusercontent.com/ulid/javascript/master/dist/index.js"
 import { HierarKey } from "https://deno.land/x/hierarkey@v1.0/mod.ts"
 import { assert } from "https://deno.land/std@0.113.0/testing/asserts.ts";
@@ -125,10 +125,10 @@ export class Parser<T, S = any>  {
                     // We have a Parser Match type object pointing to: 
                     //  1) a Lexer Match type object, OR
                     //  2) a Lexer RegExp type object
-                    assert ( e !== undefined, `PR_03 , Match object is undefined for: ${key}`)    
+                    assert ( e !== undefined, `PR_03 , Match object is undefined for: ${key}`) 
                     const regKey = this.LRReverseMap.has(e as Matcher ) ? this.LRReverseMap.get(e as Matcher ) : this.LRReverseMap.get(e.match as RegExp ) 
                     assert ( regKey !== undefined, `PR_03 , Reverse Lookup returned undefined for: ${JSON.stringify(e, undefined, 2)}`) 
-                    const m =  this.resolveMatcher(regKey, e as Matcher )
+                    let m =  this.resolveMatcher(regKey, e as Matcher )
                     expect.push( this.resolveLogic(key, m) )
                 }    
                 else {
@@ -233,6 +233,7 @@ export class Parser<T, S = any>  {
             type:       'PR Token',
             regexp:     undefined,
             cb:         undefined,
+            cbLex:      undefined,
             parent:     parent
         } as InternMatcher
     }
@@ -244,7 +245,8 @@ export class Parser<T, S = any>  {
         parent: string | undefined = undefined
     ): InternMatcher {
         assert( e !== undefined, `Matcher: '${e}' is undefined` )
-        assert( key !== undefined, `Matcher.key is undefined` )           
+        assert( key !== undefined, `Matcher.key is undefined` )   
+        const lexCb = this.LRMap.get(key)?.cb
         return { 
             key:    key, 
             id:     ulid(),
@@ -256,6 +258,7 @@ export class Parser<T, S = any>  {
             regexp: e.match as RegExp,
             lRRef:  e as unknown as Matcher,
             cb:     e.cb ?? undefined,
+            cbLex:  lexCb, 
             parent: parent
         } as InternMatcher
     }
@@ -284,7 +287,8 @@ export class Parser<T, S = any>  {
             type:   'RegExp',
             regexp: matcher.match as RegExp,
             lRRef:  e as unknown as RegExp,
-            cb:     matcher.cb ?? undefined,
+            cb:     undefined,
+            cbLex:  matcher.cb,
             parent: parent
         } as InternMatcher
     }
@@ -310,6 +314,7 @@ export class Parser<T, S = any>  {
             regexp: undefined,
             lRRef:  ('match' in e ) ? e as unknown as Matcher : e as unknown as RegExp,
             cb: undefined,
+            cbLex: undefined,
             parent:  parent
         } 
         // Checks 
@@ -347,7 +352,9 @@ export class Parser<T, S = any>  {
             else { // Assume Matcher
                 res.type = 'Matcher'
                 res.key = this.LRReverseMap.get(v as Matcher)!
-                res.regexp = this.LRMap.get(res.key)!.match
+                const m = this.LRMap.get(res.key)
+                res.regexp = m!.match
+                res.cbLex = m!.cb
             }
         })
         assert( res.key !== undefined , `Key is missing in ParserRules entry ${JSON.stringify(e)}`)
@@ -561,8 +568,11 @@ export class Parser<T, S = any>  {
                     (matchRec as IIndexable<any>)[k] = res.groups[k]
                 }
             }
+
+            // if it exists, run the Lexer callback function 
+            if ( iMatcher.cbLex !== undefined ) iMatcher.cbLex(matchRec, this.scope as S)
             
-            // if it exists, run the callback function on the result 
+            // if it exists, run the Parser callback function on the parser result 
             if ( iMatcher.cb !== undefined ) iMatcher.cb(matchRec, this.scope as S)
 
             // Store the result 
@@ -712,7 +722,7 @@ export class Parser<T, S = any>  {
         // let xorGroupMatched = false
         eMap.expect.every( ( _iMatcher: InternMatcher, i: number ) => { 
             if ( this.EOF() ) return false
-            const iMatcher: InternMatcher = _.clone(_iMatcher)
+            const iMatcher: InternMatcher = _.cloneDeep(_iMatcher)
             assert( iMatcher !== undefined, `eMap.expect.every(): Undefined iMatcher in 'expect array'`)
             assert( iMatcher.key !== undefined && iMatcher.key !== 'undefined', Colors.red(`eMap.expect.every(): Undefined iMatcher.key in 'expect array'`))
             assert((iMatcher.key !== tokenStr || i > 0), Colors.red(`Left recursive reference: ${iMatcher.key} to own parent token position 0` ))
