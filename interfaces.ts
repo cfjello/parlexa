@@ -109,13 +109,16 @@ export type ExpectMap       = {
 
 export type LexerRules  = Record<string, Matcher | RegExp >
 export type Logical     =  'or' | 'xor' | 'NOP' | 'none' | 'ignore'
+// export type TryType<T>  = `try:${keyof T}`
+export type OnTypes     =  'break' | 'continue' |  'fail'  
+export type OnObject = {match: string , action: OnTypes, msgId?: string }
 
 export type Expect<T>       = { 
-    multi?: Cardinality, expect:  
-    Array<ExpectEntry<T>>, 
-    cb?: Callback  
+    multi?: Cardinality, 
+    expect: Array<ExpectEntry<T>>, 
+    on?:    OnObject | OnObject[] ,
+    cb?:    Callback  
 }
-
 
 export type ShortExpectEntry<T> = Array<Matcher | RegExp | T | Cardinality | Logical | Callback>
 export type ExpectEntry<T>  = ShortExpectEntry<T> | Matcher | RegExp | T
@@ -124,7 +127,7 @@ export type ParserRules<T>  = Record<string, Expect<T>>
 
 
 export type Keys<G,L>       = G | L | 'NOP' | '__undef__' | 'unknown'
-
+// export func = () => typeof P
 export type ArrToObject<A extends readonly string[], E> = {
     [K in A[number]]: E;
 }

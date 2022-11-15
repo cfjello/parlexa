@@ -179,3 +179,22 @@ Deno.test({
     sanitizeResources: false,
     sanitizeOps: false
 })
+
+Deno.test({
+    name: '09 - NewLine is matched correctly', 
+    fn: () => {  
+        const input = `     
+            let øæå  = [1234]
+        `
+        const parser = new Parser( LR, PR, 'reset')
+        parser.debug = false
+        parser.reset(input)
+        const tree = parser.getParseTree()
+        // deno-lint-ignore no-explicit-any
+        const matcher : any[] = tree.filter( v => v.type === 'NL' )
+        // console.debug(`${JSON.stringify(matcher,undefined,2)}`)
+        assertEquals( matcher.length, 2)
+    },
+    sanitizeResources: false,
+    sanitizeOps: false
+})

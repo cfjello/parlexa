@@ -1,16 +1,31 @@
-import { Keys, ParserRules } from "../../interfaces.ts";
-import LR from "./lexerRules.ts";
+import { ArrToObject, Expect, Keys, OnObject, ParserRules } from "../../interfaces.ts";
+import LR from "../leadSheet/lexerRules.ts";
 //
 // User defined group-tokens for this set of parser rules
 //
 export type ParserTokens = 'reset' | 'header' | 'space' | 'form' |'always' | 'duration' | 'chord' | 
                            'common' | 'commonList' | 'minor' | 'scaleMode' | 'note' | 'scale' | 'testDummy' | 'key'
-                           //                 
-                         
+//
 // ParserRules groups (key tokens below) are typed as the combination of the user defined  
 // ParserTokens (above) and the LexerRules instanse (LR) keys
+
+
+const lexerKeys = Object.keys(LR)
+type lexKeyType = typeof lexerKeys[number] 
+
+
+export type Keys2<P,L, A extends readonly string[]> = P | L |  ArrToObject<A,P> | 'NOP' | '__undef__' | 'unknown'
+export type ParserRules2<T>  = Record<string, Expect<T>>
+
 // 
 export const PR: ParserRules<Keys<ParserTokens, typeof LR>> = {
+    // init:  (){ this.self = this },
+    always2 : {  
+        expect: [
+            [ LR.WS , '0:m', 'ignore'],
+            [ LR.NL,  '0:m' ]  
+        ]
+    },
     always: {  
         expect: [
             [ LR.WS , '0:m', 'ignore'],
@@ -108,6 +123,7 @@ export const PR: ParserRules<Keys<ParserTokens, typeof LR>> = {
     },
     CHORD_NOTE: {
         multi: '1:1',
+        on : { match: 'NL', action: 'break'},
         expect: [
             LR.CHORD_TYPE,
             LR.CHORD_EXT,

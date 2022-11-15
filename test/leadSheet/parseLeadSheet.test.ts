@@ -65,7 +65,6 @@ Deno.test({
     sanitizeOps: false
 })
 
-/*
 Deno.test({
     name: '04 - Parser can provide a parser tree iterator', 
     fn: () => {  
@@ -82,4 +81,3 @@ Deno.test({
     sanitizeResources: false,
     sanitizeOps: false
 })
-*/ 
