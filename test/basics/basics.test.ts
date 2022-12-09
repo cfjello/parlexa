@@ -13,10 +13,10 @@ Deno.test({
         const parser = new Parser( LR, PR, 'reset')
         parser.debug = false
         parser.reset(input)
-        console.debug(`parser.result.size: ${parser.result.size}`)
+        // console.debug(`parser.result.size: ${parser.result.size}`)
         assert( parser.result.size >= 18 )
         const tree = parser.getParseTree()
-        console.debug(`tree.length: ${tree.length}`)
+        // console.debug(`tree.length: ${tree.length}`)
         assert( tree.length >= 9 )
     },
     sanitizeResources: false,

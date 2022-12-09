@@ -15,11 +15,13 @@ Deno.test({
         parser.debug = false
         parser.reset(angie)
         const tree = parser.getParseTree()
+        Deno.writeTextFile('./log.txt',`${JSON.stringify(tree, undefined, 2)}`, { append: false} )
         const keyMatches = tree.filter( v => v.type === 'SECTION')  
-        // console.log(JSON.stringify(tree, undefined, 2))
         assertEquals(keyMatches.length, 4) 
-        // const form = tree.filter( v => v.type === 'FORM')
-        // assertEquals(form.length, 1) 
+        assertEquals(keyMatches[0].value, 'Intro')
+        assertEquals(keyMatches[1].value, 'Verse 1')
+        assertEquals(keyMatches[2].value, 'Bridge Solo')
+        assertEquals(keyMatches[3].value, 'Coda') 
     },
     sanitizeResources: false,
     sanitizeOps: false

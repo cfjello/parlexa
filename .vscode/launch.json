@@ -42,15 +42,15 @@
             "name": "Deno TEST <file>",
             "type": "node",
             "request": "launch",
-            "runtimeExecutable": "C:\\Users\\claus\\.deno\\bin\\deno.exe",
+            "runtimeExecutable": "deno",
             "runtimeArgs": [
                 "test", 
-                "--inspect-brk=127.0.0.1:9300",  
+                "--inspect-brk=127.0.0.1:9201",  
                 "-A", 
+                "--unstable", 
                 "${file}"
             ],
-            "attachSimplePort": 9300,
-            "outputCapture": "std"
+            "attachSimplePort": 9201
         },
 
     ],

@@ -4,3 +4,4 @@ res.out
 /test/out.txt
 debug.ts
 .gitignore
+test/log.txt

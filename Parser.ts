@@ -1,11 +1,11 @@
 // @deno-types='https://deno.land/x/xregexp/types/index.d.ts'
-import XRegExp, { matchRecursive } from  'https://deno.land/x/xregexp/src/index.js'
-import { encodeTime, ulid } from "https://raw.githubusercontent.com/ulid/javascript/master/dist/index.js"
+import XRegExp from  'https://deno.land/x/xregexp/src/index.js'
+import {  ulid } from "https://raw.githubusercontent.com/ulid/javascript/master/dist/index.js"
 import { HierarKey } from "https://deno.land/x/hierarkey@v1.0/mod.ts"
 import { assert } from "https://deno.land/std@0.113.0/testing/asserts.ts";
 import EventEmitter from "https://deno.land/x/events/mod.ts";
 import { _ } from './lodash.ts';
-import { Cardinality, Expect, ExpectEntry, Logical, Matched, MatchRecord, InternMatcher, Matcher, LexerRules, ParserRules, Info, ShortExpectEntry, Callback, MatchRecordExt, LogicDescriptor, OnObject} from "./interfaces.ts"
+import { Cardinality, Expect, ExpectEntry, Logical, Matched, MatchRecord, InternMatcher, Matcher, LexerRules, ParserRules, Info, ShortExpectEntry, Callback, MatchRecordExt} from "./interfaces.ts"
 import { ExpectMap } from "./interfaces.ts";
 import * as Colors from "https://deno.land/std/fmt/colors.ts" 
 import { Logic } from "./Logic.ts";
@@ -20,6 +20,8 @@ export class Parser<T, S = any>  {
     public debug      = false;
     public newLine    = 'NL'
     public whiteSpace = 'WS'
+    public BoF  = true
+    public BoL  = true
     debugHook     = 0
     public always = 'always';
     maxCount      = 0
@@ -49,11 +51,6 @@ export class Parser<T, S = any>  {
 
     // Logic groups initialization
     logicMap = new Map<string,Logic>() 
-
-    // Redirect directives initialization
-    onMap = new Map<string, OnObject[]>() 
-    onActiveMap = new Map<string, Map<string, OnObject>>() 
-    ee = new EventEmitter()
 
     // Lexer and Parser Maps
     private LRMap         = new Map<string, Matcher>()
@@ -115,21 +112,6 @@ export class Parser<T, S = any>  {
             const expect:  InternMatcher[] = []
             if ( this.debug ) console.log (`Mapping key: ${key} with type: ${typeof key}`)
 
-            if ( pr.on ) { 
-                console.debug(`Set onMapEntry: ${JSON.stringify(pr.on)}`)
-                this.onMap.set(key,  Array.isArray(pr.on) ? pr.on : [pr.on]) 
-                /*
-                ( Array.isArray(pr.on) ? pr.on : [pr.on] ). forEach ( (ent: onObject<T>):void => {
-                    if ( ! this.onMap.has(key) ) {
-                        this.onMap.set(key, [])
-                        this.onReverseMap.set(ent.match + '', [])
-                    }
-                    this.onMap.get(key)!.push(ent)
-                    this.onReverseMap.get(ent.match + '')!.push(ent)
-                })
-                */
-            }
- 
             pr.expect.forEach( ( e: ExpectEntry<T>) => {
                 if ( typeof e === 'string') {
                     expect.push( this.resolveString(e as string) )
@@ -163,6 +145,7 @@ export class Parser<T, S = any>  {
                 {
                     multi: pr.multi ?? '0:m',
                     expect: expect,
+                    line:  pr.line ?? false,
                     cb: pr.cb ?? undefined
                 } as ExpectMap 
             )
@@ -534,7 +517,7 @@ export class Parser<T, S = any>  {
                 col:     this.col,
                 matched: m.matched !== undefined ? m.matched : false,
                 parent:  m.parent ,
-                level:   m.parent ? this.result.get(m.parent)!.level + 1 : 0 ,
+                level:   m.parent !== '__undefined__' ? this.result.get(m.parent!)!.level + 1 : 0 ,
                 children: []
             } as MatchRecord
     }
@@ -543,7 +526,7 @@ export class Parser<T, S = any>  {
         return Array<string>(level).fill(filler, 0 ).join('')
     }
 
-    doMatch( iMatcher: InternMatcher, parentId: string, level: number, roundTrips = 1 ): Matched {
+    doMatch( iMatcher: InternMatcher, parentId: string, level: number, roundTrips = 1, lineActive: boolean ): Matched {
         const ret: Matched = { foundToken: false, id: undefined, ignore: false } 
         if ( this.EOF() || this.alreadyMatched( iMatcher.keyExt!, this.pos) ) {
             if ( this.debug ) console.debug(`${this.getIndent(level+1)}doMatch() SKIP: ${iMatcher.key}(${level}) at ${this.pos} ALREADY TRIED against: "${this.input.substring(this.pos,this.pos + 30).replace(/\n.*/mg, '')}"`)
@@ -567,6 +550,10 @@ export class Parser<T, S = any>  {
                 this.line++
                 this.col = 1
                 this.bol = iMatcher.regexp!.lastIndex 
+                this.BoL = true
+            }
+            else if ( ! (iMatcher.ignore ?? false ) ) {
+                this.BoL = false
             }
             this.pos = iMatcher.regexp!.lastIndex
             ret.foundToken = true 
@@ -617,7 +604,7 @@ export class Parser<T, S = any>  {
                 ! this.alreadyMatched( iMatcher.keyExt!, this.pos)
 
             ) {// The matched Lexer object has a parser entry of its own
-                ret.foundToken  = this.parse(iMatcher.key as unknown as  T, id, level + 1, roundTrips)
+                ret.foundToken  = this.parse(iMatcher.key as unknown as  T, id, level + 1, roundTrips, lineActive)
             }
         }
         return ret
@@ -664,7 +651,7 @@ export class Parser<T, S = any>  {
     }
 
     // Main Parser function
-    parse ( token: T, parentId: string | undefined = undefined, level = 1, roundTrips = 1): boolean {
+    parse ( token: T, parentId = '__undefined__', level = 1, roundTrips = 1, lineActive = false ): boolean {
         const tokenStr =  token + ''
         assert ( (token ?? 'undefined') !== 'undefined',`Parse(): Undefined parser token: '${token}'`)
         assert( this.PRMap.has( tokenStr ),`Parse(): Unknown parser token: '${token}'`)
@@ -684,6 +671,9 @@ export class Parser<T, S = any>  {
         const eMap: ExpectMap = this.PRMap.get(token as unknown as string)!
         const [tokenMin, tokenMax] = this.getMulti( eMap.multi ?? '0:m' )
         const hasCallback  = eMap.cb ?? false ? true : false
+        const lineParsing = eMap.line ?? false 
+        // const lineActive = lineParsing || _lineActive
+
         let failBranch = false
         
         if ( this.debug  && tokenStr !== this.always ) {
@@ -697,7 +687,7 @@ export class Parser<T, S = any>  {
 
         
         let parentToken = '' 
-        if ( parentToken !== undefined && this.result.has(parentId!) ) {
+        if ( parentToken !== '__undefined__' && this.result.has(parentId!) ) {
             parentToken = `${(this.result.get(parentId!) as MatchRecord).value}`
         }
         const tokenExt =  ( parentToken !== '' ?  `${parentToken}.` : '' ) + tokenStr 
@@ -732,7 +722,7 @@ export class Parser<T, S = any>  {
             offset: this.pos,
             parent: parentId 
         })
-        if ( parentId ) this.result.get(parentId)!.children.push(id)
+        if ( parentId !== '__undefined__' ) this.result.get(parentId)!.children.push(id)
         
         this.reverseIdx.push(id)
         this.result.set( id, tokenMatchRec)
@@ -740,28 +730,26 @@ export class Parser<T, S = any>  {
         //
         // EXPECT OUTER LOOP
         // Do the matches of the expect groups entries
-        //
-        // Setup match messaging
-        // 
-        const matchMsgs = [] as OnObject[]
-        const listener = (msg: OnObject)  => {
-            // console.debug(`Receiving event ${msg.match} for ${uniqueKey}`)
-            matchMsgs.push(msg) 
-        }
-        if ( this.onMap.has( tokenStr ) ) {
-            this.onMap.get( tokenStr )!.forEach( (ent: OnObject) => {
-                if ( ! this.onActiveMap.has(ent.match) ) {
-                    this.onActiveMap.set(ent.match, new Map<string,OnObject>())
-                }
-                this.onActiveMap.get(ent.match)!.set(uniqueKey, ent)
-                this.ee.once(uniqueKey, listener)
-            }) 
-        }
         let exitExpectLoop = false
 
         eMap.expect.every( ( _iMatcher: InternMatcher, i: number ) => { 
             if ( this.EOF() ) return false
+            this.BoF = (this.pos === 0);
+
+
+
             const iMatcher: InternMatcher = _.cloneDeep(_iMatcher)
+
+            // Break if we get a newline while line matching:
+            // - we are not matching the first symbol
+            // - or while matching any recursive sub non-terminal expect array entry
+            if (  this.BoL && (lineActive || ( lineParsing && i > 0 ) ) && 
+                iMatcher.key !== this.newLine && !iMatcher.ignore 
+            ) {
+                if ( this.debug ) console.debug(`Break from inner loop Expect symbol at index ${i}: ${_iMatcher.key} due to newLine`)
+                return false
+            }
+
             assert( iMatcher !== undefined, `eMap.expect.every(): Undefined iMatcher in 'expect array'`)
             assert( iMatcher.key !== undefined && iMatcher.key !== 'undefined', Colors.red(`eMap.expect.every(): Undefined iMatcher.key in 'expect array'`))
             assert((iMatcher.key !== tokenStr || i > 0), Colors.red(`Left recursive reference: ${iMatcher.key} to own parent token position 0` ))
@@ -782,7 +770,7 @@ export class Parser<T, S = any>  {
                         console.debug(`${this.getIndent(level)}parse() SKIP: ${iMatcher.key}(${level}) at ${this.pos} ALREADY TRIED against: "${this.input.substring(this.pos,this.pos + 30).replace(/\n.*/mg, '')}"`)
                 }
                 else {
-                    const childFailed = this.parse( iMatcher.key as unknown as T, id, level + 1, roundTrips )
+                    const childFailed = this.parse( iMatcher.key as unknown as T, id, level + 1, roundTrips, lineActive )
                     iMatcher.tries++
                     if ( logic ) logic.setIMatch( iMatcher, !childFailed)
                     // Check If a mandatory child has failed 
@@ -825,17 +813,37 @@ export class Parser<T, S = any>  {
                     iMatcher.tries = ++loopCnt
                     // Handling White space/ newline entries
                     if ( token !== always ) { 
-                        this.parse( always, id, level )
+                        this.parse( always, id, level, roundTrips, false )
                         tokenMatchRec.offset = this.pos
                         this.result.get(id)!.offset = this.pos 
                     }   
                     lastPos = lastPos < this.pos ? this.pos : lastPos
+
+                     // Break if matching does not start after a the beginning of line
+                    if ( lineParsing && 
+                        i === 0 && 
+                        roundTrips == 1 &&
+                        matchCnt === 0 &&  
+                        !( this.BoL || this.BoF ) ) {
+                        if ( this.debug ) console.debug(`Break from inner loop Expect symbol at index ${i}: ${_iMatcher.key} due to newLine: '${this.BoL}'`)
+                        exitExpectLoop = true
+                        break
+                    }
+                    // If lineActive, line oriented matching then break current Expect loop when encountering a newLine
+                    if (  this.BoL && (lineActive || ( lineParsing && i > 0 ) ) ) { 
+                        // if ( this.debug ) console.debug(`Inner loop BoL for symbol at index ${i}: ${_iMatcher.key}, matchCnt: ${matchCnt}`)
+                        if ( matchCnt === 0 && iMatcher.key !== this.newLine && !( iMatcher.ignore ?? false) ) {
+                            if ( this.debug ) console.debug(`${this.getIndent(level)}Break from inner loop Expect symbol at index ${i}: ${_iMatcher.key} due to newLine`)
+                            exitExpectLoop = true
+                            break
+                        }
+                    }
                     //
                     //  Do the actual match, taking the cardinality into account
                     //
                     if ( ! this.alreadyMatched(iMatcher.keyExt, this.pos ) ) {
                         // Main match function
-                        match = this.doMatch(iMatcher, id, level, roundTrips)
+                        match = this.doMatch(iMatcher, id, level, roundTrips, lineActive)
                         iMatcher.tries++
 
                         // Remember the match
@@ -866,29 +874,6 @@ export class Parser<T, S = any>  {
                                 }
                             }
                         }
-                        // Post notification of the match to any subscriber
-                        if ( !failBranch && match.foundToken ) {
-                            const msgSender = this.onActiveMap.get(iMatcher.key)
-                            if ( msgSender ) {
-                                for ( const [key, msg] of msgSender ) {
-                                    this.ee.emit( key, msg )
-                                }
-                            }
-                        }
-
-                        if ( matchMsgs.length > 0 ) {
-                            const msgs = matchMsgs.reverse().filter( m => ( m.action === 'break' ||  m.action === 'fail' ) )  
-                            for( let i = 0 ; i < msgs.length; i++ ) {
-                                if ( msgs[i].action === 'fail' ) {
-                                    this.failBranch(id, `Match branch invalidated due to lower level math ${msgs[i].match}`, level)
-                                    break
-                                }    
-                                if ( msgs[i].action === 'break' ) {
-                                    exitExpectLoop = true
-                                    break
-                                }
-                            }
-                        }
                     }
                 }
                 while ( 
@@ -903,7 +888,7 @@ export class Parser<T, S = any>  {
                 // Final Evaluation of match count
                 if ( iMatcher.logicGroup < 0 && ( matchCnt > max || matchCnt < min ) ) {
                         // Fail this branch of matching due to failed cardinality constraint
-                        this.failBranch(id, `Failed match count: ${matchCnt} for ${iMatcher.keyExt} at roundtrip: ${roundTrips}`, level)
+                        this.failBranch(id, `${this.getIndent(level)}Failed match count: ${matchCnt} for ${iMatcher.keyExt} at roundtrip: ${roundTrips}`, level)
                         failBranch = true
                 }
 
@@ -927,20 +912,11 @@ export class Parser<T, S = any>  {
         const matched   = progress && inRange
 
         this.result.get(id)!.matched = matched
-        
+
         // If defined, call the ParserRules token callback: cb( curretMatchRecord, userDefinedScopeObject)
         if ( matched && hasCallback ) {
             eMap.cb!( tokenMatchRec, this.scope as S )
         }
-
-        /*
-        // Cleanup match messaging
-        memMatch.forEach( ent => {
-            // if ( this.onActiveMap.get(ent)?.has(logicKey) ) 
-            if ( this.onActiveMap.get(ent)?.delete(logicKey) )
-                this.ee.off(logicKey, listenMap.get(logicKey))
-        })
-        */
 
         // Check whether to retry the current symbol:
         //  - the branch did not fail
@@ -953,7 +929,7 @@ export class Parser<T, S = any>  {
             logic = undefined
             this.logicMap.delete(uniqueKey)
             if ( this.debug ) console.log(`${this.getIndent(level)}RETRY token: ${token}`)
-            this.parse( token, id, level, roundTrips + 1 )
+            this.parse( token, id, level, roundTrips + 1, lineActive || lineParsing )
         }
       
         // In case we did not parse the whole input string:

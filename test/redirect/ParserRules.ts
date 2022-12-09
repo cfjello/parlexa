@@ -1,10 +1,11 @@
-import { ArrToObject, Expect, Keys, OnObject, ParserRules } from "../../interfaces.ts";
+import { ArrToObject, Expect, Keys, ParserRules } from "../../interfaces.ts";
 import LR from "../leadSheet/lexerRules.ts";
 //
 // User defined group-tokens for this set of parser rules
 //
 export type ParserTokens = 'reset' | 'header' | 'space' | 'form' |'always' | 'duration' | 'chord' | 
-                           'common' | 'commonList' | 'minor' | 'scaleMode' | 'note' | 'scale' | 'testDummy' | 'key'
+                           'common' | 'commonList' | 'minor' | 'scaleMode' | 'note' | 'scale' | 
+                           'testDummy' | 'key' | 'barLine' | 'barEntry'
 //
 // ParserRules groups (key tokens below) are typed as the combination of the user defined  
 // ParserTokens (above) and the LexerRules instanse (LR) keys
@@ -19,13 +20,7 @@ export type ParserRules2<T>  = Record<string, Expect<T>>
 
 // 
 export const PR: ParserRules<Keys<ParserTokens, typeof LR>> = {
-    // init:  (){ this.self = this },
-    always2 : {  
-        expect: [
-            [ LR.WS , '0:m', 'ignore'],
-            [ LR.NL,  '0:m' ]  
-        ]
-    },
+    // init: { },
     always: {  
         expect: [
             [ LR.WS , '0:m', 'ignore'],
@@ -42,7 +37,7 @@ export const PR: ParserRules<Keys<ParserTokens, typeof LR>> = {
     },
     SECTION: { 
         expect: [
-            LR.BAR,
+            'barLine',
             LR.SQ_BRACKET
         ]
     },
@@ -60,7 +55,7 @@ export const PR: ParserRules<Keys<ParserTokens, typeof LR>> = {
            'header' ,
            'common', 
             LR.SECTION,
-            LR.BAR,
+            'barLine',
             LR.TEXT
         ] 
     },
@@ -110,21 +105,29 @@ export const PR: ParserRules<Keys<ParserTokens, typeof LR>> = {
             [ LR.SQ_BRACKET_END]
         ]
     },
-    BAR: {
+    barEntry: {
         multi: '1:m',
         expect: [
-            [ LR.REPEAT_COUNT, '0:m'],
-            [ LR.CHORD_NOTE , '0:1', 'xor'],
-            [ LR.REST,        '0:1', 'xor'],
-            [ LR.REPEAT_LAST, '0:1', 'xor'],
-            [ LR.SQ_BRACKET,  '0:1', 'xor'],
+            [ 'chord' , '1:1', 'xor'],
+            [ LR.REST,        '1:1', 'xor'],
+            [ LR.REPEAT_LAST, '1:1'],
+        ]
+    },
+    barLine: {
+        multi: '1:m',
+        line: true,
+        expect: [
+            [ LR.BAR, '1:2'],
+            [ LR.REPEAT_COUNT, '0:1' ],
+            [ 'barEntry' , '0:m'],
+            [ LR.SQ_BRACKET,  '0:1' ],
             [ LR.REPEAT_END,  '0:1' ]
         ]
     },
-    CHORD_NOTE: {
-        multi: '1:1',
-        on : { match: 'NL', action: 'break'},
+    'chord': {
+        multi: '1:m',
         expect: [
+            [ LR.CHORD_NOTE, '1:1' ],
             LR.CHORD_TYPE,
             LR.CHORD_EXT,
             LR.CHORD_EXT2,

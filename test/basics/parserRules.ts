@@ -60,7 +60,6 @@ export const PR: ParserRules<Keys<ParserTokens, typeof LR>> = {
             ['assignEnd', '1:1']
         ] 
     },
-
     arrElement: {
         expect: [ 
             {   match: LR.STR, 
