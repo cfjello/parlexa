@@ -2,7 +2,7 @@ import { assert, assertEquals } from "https://deno.land/std/testing/asserts.ts";
 import { angie } from "./angieData3.ts"
 import { Parser } from "../../Parser.ts";
 import  LR  from "../leadSheet/lexerRules.ts"
-import { PR } from "./parserRules.ts"
+import { PR } from "./ParserRules.ts"
 // deno-lint-ignore no-explicit-any
 export interface PIndexable { [key: string]: any }
 
@@ -15,10 +15,10 @@ Deno.test({
         parser.debug = false
         parser.reset(angie)
         const tree = parser.getParseTree()
-        Deno.writeTextFile('./log.txt',`${JSON.stringify(tree, undefined, 2)}`, { append: false} )
+        // Deno.writeTextFile('./log.txt',`${JSON.stringify(tree, undefined, 2)}`, { append: false} )
         const keyMatches = tree.filter( v => v.type === 'SECTION')  
         assertEquals(keyMatches.length, 4) 
-        assertEquals(keyMatches[0].value, 'Intro')
+        assertEquals(keyMatches[0].value, 'Head')
         assertEquals(keyMatches[1].value, 'Verse 1')
         assertEquals(keyMatches[2].value, 'Bridge Solo')
         assertEquals(keyMatches[3].value, 'Coda') 

@@ -5,7 +5,7 @@ import LR from "../leadSheet/lexerRules.ts";
 //
 export type ParserTokens = 'reset' | 'header' | 'space' | 'form' |'always' | 'duration' | 'chord' | 
                            'common' | 'commonList' | 'minor' | 'scaleMode' | 'note' | 'scale' | 
-                           'testDummy' | 'key' | 'barLine' | 'barEntry'
+                           'testDummy' | 'key' | 'keyCmd' | 'barLine' | 'barEntry'
 //
 // ParserRules groups (key tokens below) are typed as the combination of the user defined  
 // ParserTokens (above) and the LexerRules instanse (LR) keys
@@ -45,7 +45,7 @@ export const PR: ParserRules<Keys<ParserTokens, typeof LR>> = {
         expect: [
             [ LR.TITLE,  '0:1' ],
             [ LR.AUTHOR, '0:1' ], 
-            [ 'key',  '0:1' ],
+            [ 'keyCmd',  '0:1' ],
             [ LR.FORM,   '0:1' ]
         ] 
     },
@@ -178,6 +178,13 @@ export const PR: ParserRules<Keys<ParserTokens, typeof LR>> = {
         expect: [
             [LR.KEY, '1:1'],
             ['scaleMode', '0:1']
+        ]
+    },
+    keyCmd: {
+        multi: '0:1',
+        line: true,
+        expect: [
+            'key'
         ]
     },
 }

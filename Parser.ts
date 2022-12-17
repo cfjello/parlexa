@@ -3,7 +3,6 @@ import XRegExp from  'https://deno.land/x/xregexp/src/index.js'
 import {  ulid } from "https://raw.githubusercontent.com/ulid/javascript/master/dist/index.js"
 import { HierarKey } from "https://deno.land/x/hierarkey@v1.0/mod.ts"
 import { assert } from "https://deno.land/std@0.113.0/testing/asserts.ts";
-import EventEmitter from "https://deno.land/x/events/mod.ts";
 import { _ } from './lodash.ts';
 import { Cardinality, Expect, ExpectEntry, Logical, Matched, MatchRecord, InternMatcher, Matcher, LexerRules, ParserRules, Info, ShortExpectEntry, Callback, MatchRecordExt} from "./interfaces.ts"
 import { ExpectMap } from "./interfaces.ts";
@@ -604,7 +603,7 @@ export class Parser<T, S = any>  {
                 ! this.alreadyMatched( iMatcher.keyExt!, this.pos)
 
             ) {// The matched Lexer object has a parser entry of its own
-                ret.foundToken  = this.parse(iMatcher.key as unknown as  T, id, level + 1, roundTrips, lineActive)
+                ret.foundToken  = this.parse(iMatcher.key as unknown as  T, id, level + 1, 1, lineActive)
             }
         }
         return ret
@@ -671,8 +670,7 @@ export class Parser<T, S = any>  {
         const eMap: ExpectMap = this.PRMap.get(token as unknown as string)!
         const [tokenMin, tokenMax] = this.getMulti( eMap.multi ?? '0:m' )
         const hasCallback  = eMap.cb ?? false ? true : false
-        const lineParsing = eMap.line ?? false 
-        // const lineActive = lineParsing || _lineActive
+        const lineParsing = eMap.line
 
         let failBranch = false
         
@@ -735,18 +733,19 @@ export class Parser<T, S = any>  {
         eMap.expect.every( ( _iMatcher: InternMatcher, i: number ) => { 
             if ( this.EOF() ) return false
             this.BoF = (this.pos === 0);
-
-
+            this.BoL = ( this.BoL || this.BoF)
 
             const iMatcher: InternMatcher = _.cloneDeep(_iMatcher)
 
             // Break if we get a newline while line matching:
             // - we are not matching the first symbol
             // - or while matching any recursive sub non-terminal expect array entry
-            if (  this.BoL && (lineActive || ( lineParsing && i > 0 ) ) && 
-                iMatcher.key !== this.newLine && !iMatcher.ignore 
+            if (  this.BoL && 
+                (lineActive || ( lineParsing && i > 0 ) ) && 
+                iMatcher.key !== this.newLine && 
+                !iMatcher.ignore 
             ) {
-                if ( this.debug ) console.debug(`Break from inner loop Expect symbol at index ${i}: ${_iMatcher.key} due to newLine`)
+                if ( this.debug ) console.debug(`${this.getIndent(level)}Break from inner loop Expect symbol at index ${i}: ${_iMatcher.key} due to newLine`)
                 return false
             }
 
@@ -770,7 +769,7 @@ export class Parser<T, S = any>  {
                         console.debug(`${this.getIndent(level)}parse() SKIP: ${iMatcher.key}(${level}) at ${this.pos} ALREADY TRIED against: "${this.input.substring(this.pos,this.pos + 30).replace(/\n.*/mg, '')}"`)
                 }
                 else {
-                    const childFailed = this.parse( iMatcher.key as unknown as T, id, level + 1, roundTrips, lineActive )
+                    const childFailed = this.parse( iMatcher.key as unknown as T, id, level + 1, 1, lineActive )
                     iMatcher.tries++
                     if ( logic ) logic.setIMatch( iMatcher, !childFailed)
                     // Check If a mandatory child has failed 
@@ -779,7 +778,7 @@ export class Parser<T, S = any>  {
                         roundTrips === 1 && // this is not an additional retry after success
                         ! logicApplies      // This is not part of some logic e.g. XOR group
                     ) { 
-                        if ( min > 0 && tokenMin > 0 ) {  // Mandatory child failed, so this branch fails
+                        if ( min > 0 && tokenMin > roundTrips ) {  // Mandatory child failed, so this branch fails
                             this.failBranch(id, `Missing mandatory child match for ${token}.${iMatcher.key} at roundtrip: ${roundTrips}`, level)
                             failBranch = true
                         }  
@@ -790,9 +789,9 @@ export class Parser<T, S = any>  {
                             // If this is the last token within a logic group 
                             // then we test the group
                             if ( ! logic!.isMatched(iMatcher.logicGroup, roundTrips) && // Logic Group failed 
-                                  tokenMin > 0            // and the parent token is not allowed to fail
+                                  tokenMin > roundTrips            // and the parent token is not allowed to fail
                             ) {
-                                this.failBranch(id, `Missing mandatory Logic group match for ${token}.${iMatcher.key} at roundtrip: ${roundTrips}`, level)
+                                this.failBranch(id, `Missing mandatory Logic group match for ${token}.${iMatcher.key} at roundTrip: ${roundTrips}`, level)
                                 failBranch = true
                             }
                         }   
@@ -813,26 +812,28 @@ export class Parser<T, S = any>  {
                     iMatcher.tries = ++loopCnt
                     // Handling White space/ newline entries
                     if ( token !== always ) { 
-                        this.parse( always, id, level, roundTrips, false )
+                        this.parse( always, id, level, 1 )
                         tokenMatchRec.offset = this.pos
                         this.result.get(id)!.offset = this.pos 
                     }   
                     lastPos = lastPos < this.pos ? this.pos : lastPos
-
+                    // if ( this.debug ) console.debug(`Inner loop BoL: ${this.BoL} at index ${i}: ${_iMatcher.key}, matchCnt: ${matchCnt}`)
+                    // if ( this.debug ) console.debug(`Inner loop lineParsing: ${lineParsing}, lineActive: ${lineActive}`)
                      // Break if matching does not start after a the beginning of line
                     if ( lineParsing && 
                         i === 0 && 
                         roundTrips == 1 &&
                         matchCnt === 0 &&  
                         !( this.BoL || this.BoF ) ) {
-                        if ( this.debug ) console.debug(`Break from inner loop Expect symbol at index ${i}: ${_iMatcher.key} due to newLine: '${this.BoL}'`)
+                        if ( this.debug ) console.debug(`${this.getIndent(level)}Break from inner loop Expect symbol at index ${i}: ${_iMatcher.key} due to missing newLine: '${this.BoL}'`)
                         exitExpectLoop = true
                         break
                     }
                     // If lineActive, line oriented matching then break current Expect loop when encountering a newLine
-                    if (  this.BoL && (lineActive || ( lineParsing && i > 0 ) ) ) { 
+                    
+                    if (  this.BoL && lineActive ) { // || ( lineParsing &&  i > 0 ) ) 
                         // if ( this.debug ) console.debug(`Inner loop BoL for symbol at index ${i}: ${_iMatcher.key}, matchCnt: ${matchCnt}`)
-                        if ( matchCnt === 0 && iMatcher.key !== this.newLine && !( iMatcher.ignore ?? false) ) {
+                        if ( iMatcher.key !== this.newLine && !( iMatcher.ignore ?? false) ) {
                             if ( this.debug ) console.debug(`${this.getIndent(level)}Break from inner loop Expect symbol at index ${i}: ${_iMatcher.key} due to newLine`)
                             exitExpectLoop = true
                             break
@@ -865,7 +866,7 @@ export class Parser<T, S = any>  {
                             if ( iMatcher.logicLast ) {
                                 if ( ! logic!.isMatched(iMatcher.logicGroup, roundTrips)  ) {
                                     if ( matchCnt < min && // Logic Group failed 
-                                         tokenMin > 0     // and the parent token is not allowed to fail) 
+                                         tokenMin > roundTrips     // and the parent token is not allowed to fail) 
                                     ) 
                                     {
                                         this.failBranch(id, `Logic match constraint is violated for ${iMatcher.keyExt}`, level)
@@ -875,6 +876,7 @@ export class Parser<T, S = any>  {
                             }
                         }
                     }
+                    lineActive = lineParsing || lineActive
                 }
                 while ( 
                     match.foundToken && 
@@ -909,7 +911,7 @@ export class Parser<T, S = any>  {
         const progress  = this.pos > goingInPos
         const rtOffset  = failBranch ? -1 : -0 
         const inRange   = (roundTrips + rtOffset) >= tokenMin && (roundTrips + rtOffset) <= tokenMax
-        const matched   = progress && inRange
+        const matched   = progress && inRange 
 
         this.result.get(id)!.matched = matched
 
@@ -922,7 +924,7 @@ export class Parser<T, S = any>  {
         //  - the branch did not fail
         //  - we are below the allowed maximum number of matches
         //  - and not at EOF
-        const proceed = matched && roundTrips < tokenMax && ! this.alreadyMatched(tokenExt, this.pos ) && ! this.EOF() 
+        const proceed = !failBranch && matched && roundTrips < tokenMax && ! this.alreadyMatched(tokenExt, this.pos ) && ! this.EOF() 
 
         if  ( proceed ) {
             // Retry the same token for additional matches 
@@ -949,6 +951,7 @@ export class Parser<T, S = any>  {
         }
 
         if ( this.debug  && tokenStr !== this.always ) console.debug( ( `${this.getIndent(level)}PARSE_END: ${token}(${level})`)) 
-        return failBranch
+        const failAll = failBranch || roundTrips < tokenMin
+        return failAll
     }
 }

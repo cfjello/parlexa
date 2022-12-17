@@ -7,11 +7,12 @@ Form:
   - Intro
   - Verse 3
   - Coda
-Key    : A Minor
 Meter  : 4/4
-Tempo  : 120                
+Tempo  : 120 
+Key    : A Minor
+               
 
-Intro : 
+Head : 
 |: Am |  E7 |  Gsus4 G Fsus4 F | Csus4,4 C,2 C/B,4 :|
 
 Verse 1 :
