@@ -7,4 +7,4 @@ const parser = new Parser( LR, PR, 'reset')
 parser.debug = false
 parser.reset(angie)
 const tree = parser.getParseTree()
-console.log(`${JSON.stringify(tree, undefined, 2)}`)
+// console.log(`${JSON.stringify(tree, undefined, 2)}`)

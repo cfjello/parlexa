@@ -1,7 +1,9 @@
 import { assert, assertEquals } from "https://deno.land/std/testing/asserts.ts";
 import { Parser } from "../../Parser.ts";
 import  LR  from "../basics/lexerRules.ts"
-import { PR } from "../basics/parserRules.ts"
+import  LR2  from "../basics/lexerRules2.ts"
+import  PR  from "../basics/parserRules.ts"
+import  PR2  from "../basics/parserRules2.ts"
 
 
 let debugHook = true
@@ -167,7 +169,7 @@ Deno.test({
     name: '08 - Lexer can call match callback function', 
     fn: () => {  
         const input = `     let øæå  = [1234]`
-        const parser = new Parser( LR, PR, 'reset')
+        const parser = new Parser( LR2, PR2, 'reset')
         parser.debug = false
         parser.reset(input)
         const tree = parser.getParseTree()

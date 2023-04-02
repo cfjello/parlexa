@@ -1,3 +1,6 @@
+// @deno-types='https://deno.land/x/xregexp/types/index.d.ts'
+import XRegExp from  'https://deno.land/x/xregexp/src/index.js'
+
 export class XorGroup {
     matched: boolean[] = []
 
@@ -38,7 +41,13 @@ export type MatchRecord = {
 export type GenericObject = { [key: string]: any }
 export type MatchRecordExt = MatchRecord & GenericObject
 
-export type Matched = { foundToken: boolean, id?: string, ignore: boolean } 
+export type Matched = { 
+    foundToken:     boolean, 
+    foundSubToken:  boolean, 
+    id?:            string, 
+    ignore:         boolean,
+    doBreak:        boolean
+} 
 
 export type MRecIterator = { value: MatchRecord, done: boolean }
 
@@ -83,6 +92,8 @@ export type InternMatcher = {
     key:        string, 
     id:         string,
     multi:      Cardinality, 
+    startOn?:    Array<RegExp>,
+    breakOn?:    Array<RegExp>,
     roundTrip:  number,
     tries:      number,
     matchCnt:   number,
@@ -102,31 +113,31 @@ export type InternMatcher = {
 
 // The internal representation within the parser
 export type ExpectMap       = { 
-    multi:   Cardinality,
-    line?:   boolean,
-    cb?:     Callback, 
-    expect:  Array<InternMatcher> 
+    multi:      Cardinality,
+    line?:      boolean,
+    startOn?:   Array<RegExp>,
+    breakOn?:   Array<RegExp>,
+    startOnStr?: Array<string>,
+    breakOnStr?: Array<string>,
+    expect:     Array<InternMatcher> 
+    cb?:        Callback, 
 }
-
 export type LexerRules  = Record<string, Matcher | RegExp >
 export type Logical     =  'or' | 'xor' | 'NOP' | 'none' | 'ignore'
-// export type TryType<T>  = `try:${keyof T}`
-// export type OnTypes     =  'break' | 'continue' |  'fail'  
-// export type OnObject = {match: string , action: OnTypes, msgId?: string }
 
-// export type OnTypes     =  'BOL' 
-
-export type Expect<T>       = { 
+export type Expect<T> = { 
     multi?: Cardinality, 
-    expect: Array<ExpectEntry<T>>, 
     line?:  boolean,
+    startOn?: Array<RegExp | Matcher>,
+    breakOn?: Array<RegExp | Matcher>,
+    expect: Array<ExpectEntry<T>>, 
     cb?:    Callback  
 }
 
 export type ShortExpectEntry<T> = Array<Matcher | RegExp | T | Cardinality | Logical | Callback>
-export type ExpectEntry<T>  = ShortExpectEntry<T> | Matcher | RegExp | T
-export type MatchEntry<T>   = Matcher | RegExp | T | Array<Matcher | T | Cardinality>
-export type ParserRules<T>  = Record<string, Expect<T>>
+export type ExpectEntry<T>      = ShortExpectEntry<T> | Matcher | RegExp | T
+export type MatchEntry<T>       = Matcher | RegExp | T | Array<Matcher | T | Cardinality>
+export type ParserRules<T>      = Record<string, Expect<T>>
 
 // 'BOL' | 'BOF' | 
 export type Keys<G,L>       = G | L | 'NOP' | '__undef__' | 'unknown' | 'init'
@@ -139,3 +150,57 @@ export type ArrToObject<A extends readonly string[], E> = {
 export interface ArgsObject {
   [key: string]: string
 }
+
+export type StartOnRS = { active: boolean, ok: boolean, match: string }
+
+export type BreakOnS<T> = {
+    token:      T,
+    roundTrips: number,
+    idx:        number, 
+    level:      number,
+    lastPos:    number,
+    breakOnPPGT: RegExp[],
+    startOnPPGT: RegExp[],
+    eMap:        ExpectMap,
+    debug?:      boolean
+}
+
+export class BreakOnFac<T> {
+    constructor(
+        public token:   T,
+        public roundTrips: number,
+        public idx:     number, 
+        public level:   number,
+        public lastPos: number,
+        public breakOnPPGT: RegExp[],
+        public startOnPPGT: RegExp[],
+        public eMap: ExpectMap ) {}
+}
+
+type BreakOnT = typeof BreakOnFac
+
+/*
+export type ParseArgsS = {
+    token:      string, 
+    parentId:   string, 
+    level:      number, 
+    roundTrips: number, 
+    breaks:     BreakOnS
+}
+
+export class parseArgsD implements ParseArgsS { 
+    constructor( 
+        public token: string, 
+        public parentId = '__undefined__', 
+        public level = 1, 
+        public roundTrips = 1, 
+        public breaks: BreakOnS
+        ) {}
+} 
+
+export type parseFuncScopeT = {
+    args:       ParseArgsS,
+    breaks:     BreakOnS
+}
+*/
+

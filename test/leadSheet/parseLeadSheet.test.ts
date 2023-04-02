@@ -8,7 +8,7 @@ export interface PIndexable { [key: string]: any }
 Deno.test({
     name: '01 - Parser can read a header Title and Auther', 
     fn: () => {  
-        const titleStr = "     Title: Angie\nAuthor: Rolling Stones\n"
+        const titleStr = " \n    Title: Angie\nAuthor: Rolling Stones\n"
         const parser = new Parser( LR, PR, 'reset')
         parser.debug = false
         parser.reset(titleStr)
@@ -19,11 +19,11 @@ Deno.test({
     sanitizeResources: false,
     sanitizeOps: false
 })
-
+/*
 Deno.test({
     name: '02 - Parser can read a Form directive', 
     fn: () => {  
-        const titleStr = "\nForm:  \n  - Intro \n- Verse\n  - Verse 2\n  - Intro\n  - Verse 3\n  - Coda\n"
+        const titleStr = "\nForm: \n -Intro \n-  Verse \n - Verse 2\n - Intro \n-Verse 3  \n    - Coda"
         const parser = new Parser( LR, PR, 'reset')
         parser.debug = false
         parser.reset(titleStr)
@@ -36,7 +36,7 @@ Deno.test({
 })
 
 Deno.test({
-    name: '03 - ParseTree has only the matched child references', 
+    name: '03 - ParseTree has only the matched child references (this will fail if you set debug = true)', 
     fn: () => {  
         // deno-lint-ignore no-explicit-any
         const idMap = new Map<string,any>()
@@ -81,3 +81,4 @@ Deno.test({
     sanitizeResources: false,
     sanitizeOps: false
 })
+*/

@@ -1,4 +1,5 @@
-export const angie = `Title: Angie
+export const angie = `
+Title: Angie
 Author: Rolling Stones
 Form:  
   - Intro 
@@ -10,7 +11,6 @@ Form:
 Meter  : 4/4
 Tempo  : 120 
 Key    : A Minor
-               
 
 Head : 
 |: Am |  E7 |  Gsus4 G Fsus4 F | Csus4,4 C,2 C/B,4 :|
@@ -31,7 +31,7 @@ _ Angie, _ Angie. _You _can't _say we _never _tri-_ed
 Bridge Solo:
 |G                   |G             |Dm                 |Am
 |C           |F               |G |G
-|Am     |E7       |  Gsus4 G Fsus4 F | Csus4 Bb  
+|Am     |E7       |  Gsus4 G Fsus4 F | Csus4 Bb  [S: C Minor]
 
 Coda:
 |Dm	                     |Am   |Dm                               |Am
@@ -41,4 +41,5 @@ _There ain't a woman that comes _close to you. _So
    |C        F               |G
 _come on _baby dry your _eyes. _But         
 |Am     |E7      |  Gsus4 G Fsus4 F | Csus4 C
-_ Angie, _ Angie, _Ain't _it _good to _be a-_li-_ve`
+_ Angie, _ Angie, _Ain't _it _good to _be a-_li-_ve
+`

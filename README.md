@@ -2,7 +2,39 @@
 
 Parlexa is a Lexer and Parser in Deno that takes advantage of TypeScript's type system to provide an tight integration between the two. It also does not require you to do any generation steps, instead it runs directly after importing the Lexer and Parser rules.
 
-The algorithm is a top down recursive parser with some extra bells and whistles that are described below. It is not not Left Recursive, so write your parser rules accordingly.
+The algorithm is a top down recursive non-determistic parser with backtracking. It also has some additional bells and whistles that are described below. It is not not Left Recursive, so write your parser rules accordingly.
+
+
+# Overview
+
+You specify a a set of Lexer Rules and a set of Parser Rules and the Parser executes directly based on these rules, with no compilation step involved:
+```
+import { Parser } from "https://deno.land/x/parlexa/mod.ts"
+import  LR        from "./lexerRules.ts"
+import { PR }     from "./parserRules.ts"
+import { data }   from "../yourInputData.ts"
+
+const parser = new Parser( LR, PR, 'reset')
+```
+Here `'reset'` is the named top level parser token. After that you can run the parser against some input data and get the result:
+
+```
+parser.reset(data)
+const tree = parser.getParseTree()
+console.log(`${JSON.stringify(tree, undefined, 2)}`)
+```
+
+Here is the step by step walkthrough:
+
+1. Import the Parser
+2. Import the LexerRules - the regular expressions to be called by the Parser to match the input data
+3. Import the ParserRules - this defines the grammer for the parser 
+4. Import some input data
+5. Instantiate a new Parser using the LexerRules, ParserRules and a *top-level non-terminal token* starting point (`'reset'` in the above example)
+6. The parser will run once `parser.reset(angie)` is called, the argument of this call being the input-string to parse
+7. The `parser.getParseTree()` returns the resulting successfully parsed nodes as an Array. If `parser.debug = true`, the complete parser tree, including failed branches, is returned. 
+8. The parser tree is flattened, but with an `ident` that identifies every nodes place within the parsing hierarchy.
+
 
 ### Demo
 
@@ -10,32 +42,10 @@ Run the demo directly from your terminal:
 ```
 deno run -A "https://deno.land/x/parlexa/examples/demo.ts"
 ```
-The demo source file, `examples/demo.ts`, file looks like this:
-```
-import { angie } from "./angieData.ts"   // The input data
-import { Parser } from "../Parser.ts"
-import  LR  from "./lexerRules.ts"
-import { PR } from "./parserRules.ts"
-
-const parser = new Parser( LR, PR, 'reset')
-parser.debug = false                    // The default
-parser.reset(angie)
-const tree = parser.getParseTree()
-console.log(`${JSON.stringify(tree, undefined, 2)}`)
-```
-The step by step walkthrough if this file is like this:
-
-1. Import some input data
-2. Import the Parser
-3. Import the LexerRules - the regular expressions called by the Parser to match the input data
-4. Import the ParserRules - this defines the grammer of what is being parsed 
-5. Instantiate a new Parser using the LexerRules, ParserRules and a *top-level non-terminal token* starting point (`'reset'` in the above example)
-6. The parser will run once `parser.reset(angie)` is called, the argument of this call being the input-string to parse
-7. The `parser.getParseTree()` returns the resulting successfully parsed nodes as an Array. If `parser.debug = true`, the complete parser tree is returned. This can then be pretty-printed
 
 ### Parlexa Output 
 
-The `parser.getParseTree()` function returns an array of parsed entries, presented here with comments:
+The `parser.getParseTree()` function returns an array of parsed entries, here one record is presented here with comments:
 
 ```
    {
@@ -45,173 +55,287 @@ The `parser.getParseTree()` function returns an array of parsed entries, present
     "text": "Author: Rolling Stones",   // The whole text of the match
     "offset": 13,                       // The start position of this match
     "newPos": 35,                       // The new position after the match
-    "ofLen": 2062,                      // The length of the whole match string
+    "ofLen": 2062,                      // The length of the whole match string/file
     "line": 2,                          // Line number of the match
     "col": 1,                           // Column number within the line of the match
-    "matched": true,                    // Is this a match. Setting 'parser.debug = true' will include the failed matches
-    "parent": "01FXA5DWRMPD8TR5HEFJ1FF72F", // An ULID identifier for the parent parser node
+    "matched": true,                    // Is this a match. 
+                                        // Setting 'parser.debug = true' will include the failed matches
+    "parent": "01FXA5DWRMPD8TR5HEFJ1FF72F", // An sortable ULID identifier for the parent parser node
     "level": 2,                         // A parser depth level number
-    "children": [],                     // An ULID array of identifiers for any child nodes of this node
-    "token": "Author",                  // Extra field, defined within the LexerRules
-    "colon": ":",                       // Extra field, defined within the LexerRules
-    "ident": "01.01.03"                 // A sortable hierarchy identifier, placing the node within the parser tree  
+    "children": [],                     // An ULID array of identifiers that list the child nodes of this node
+    "token": "Author",                  // Extra field(s), that can be defined within the LexerRules
+    "colon": ":",                       // Another extra field, defined within the LexerRules
+    "ident": "01.01.03"                 // A sortable hierarchy identifier of the node within the parser tree  
   },
   ```
 
 ### Lexer Rules
 
-This lexer is inspired by the mpm package *moo*, but is does away with the limitations that *moo* imposes on the use of regular expression. Also, it does not run the lexer before the parser, rather the lexer matching patterns are called in context from within the parser.
+This lexer is inspired by the mpm package *moo*, but does away with the limitations that *moo* imposes on the use of regular expression. Also, it does not run the lexer before the parser, rather the lexer matching patterns are called in context from within the parser.
 
-Lexer rules are defined that utilizes the **xregexp** deno package. This is a great package that allows for regular expressions with support for unicode, named match-groups that will be available within the parser and regexp style look-ahead:
+The way Lexer Rules are defined utilizes the **xregexp** Deno package. This is a great package that allows for regular expressions with support for unicode, regexp style look-ahead and named match-groups. These groups will be available within the parser.
+
+A word of caution: I you are unfamiliar with regular expressions, or the XRegExp variant, you should study them in some datail before using this package. Parsers are notorious for being difficult and regular expressions is one of the tricky parts. 
+
+Let us define a set of Lexer Rules for a simple assigment statement:
 
 ```
 // @deno-types='https://deno.land/x/xregexp/types/index.d.ts'
 import XRegExp from  'https://deno.land/x/xregexp/src/index.js'
-import { LexerRules } from 'https://deno.land/x/parlexa/mod.ts'
+import { LexerRules } from "https://deno.land/x/parlexa/mod.ts";
+
 const LR: LexerRules = {
-    TITLE:      XRegExp( '(?<token>Title)[ \\t]*(?<colon>:)[ \\t]*(?<value>[\\p{L}0-9\\- \\t]+?)[ \\t]*(?=$|\\n)', 'xuig' ),
-    AUTHOR:     XRegExp( '(?<token>Author)[ \\t]*(?<colon>:)[ \\t]*(?<value>[\\p{L}0-9\\- \\t]+?)[ \\t]*(?=$|\\n)', 'xuig' ),
-    FORM:       XRegExp( '(?<token>Form)[ \\t]*(?<colon>:)[ \\t]*(?=$|\\n)', 'gi' ),
-    LIST_ENTRY: {
-        match:  XRegExp( '(?<token>\-)[ \\t]*(?<value>[\\p{L}0-9\\- \\t]+?)[ \\t]*(?=$|\\n)', 'xuig'),
-        multi: '1:m'
-    },
-    (...)
+    IDENT:      XRegExp( '(?<value>\\p{L}[\\p{L}0-9]*)', 'xuig' ),
+    INT:        XRegExp( '(?<value>[0-9]+)', 'xug' ),
+    STR:        XRegExp( '[\'"](?<value>[^\'"\\n]+)[\'"]', 'xuig' ),
+    LET:        XRegExp( '(?<value>let[\\t ]+)', 'xug' ),
+    EQSIGN:     XRegExp( '(?<EQSIGN>\\=)', 'gi' ),
+    ROB_BEGIN:  XRegExp( '(?<ROB>\\()', 'gi' ),
+    ROB_END:    XRegExp( '(?<ROE>\\))', 'gi' ),
+    SQB_BEGIN:  XRegExp( '(?<SQB>\\[)', 'gi' ),
+    SQB_END:    XRegExp( '(?<SQE>\\])', 'gi' ),
+    COMMA:      XRegExp('(?<value>,)', 'xug'),
+    SEMICOLON:  XRegExp('(?<value>;)', 'xug'),
+    NL:         XRegExp('(?<value>[\\n\\r]+?)', 'g'), 
+    WS:         XRegExp('(?<value>[ \\t]+)', 'g'),
+    WSNL:       XRegExp('(?<value>[ \\t]+[\\n\\r]+)', 'g'),
+}
+
+export default LR
 ```
+Here is what happens:
 
-The `LexerRules` entries comes in two form:
-- A named `XRegExp` entry like `TITLE: XRegExp(...)`, or
-- An object containing a `match: XRegExp` field and a `multi` field that defines the local cardinality.
- 
-The cardinality/multiplicity of the match is how many matches to expect, that is the minimun and maximum given as a number (or 'm' for many). The format is `'0:m'` for zero or many (the default) or i.e. `'1:1'` for one and only one or `'2:7'` for a minimum of 2 and a maximum of 7.
+1. Import XRegExp, the types and the package
+2. Import the LexerRules type as defined in Parlexa
+3. Import the ParserRules - this defines the grammer of what is being parsed 
+4. Using XRegExp expressions, define the Lexer terminal tokens:
+   1. IDENT matches an identifier that is defined as a named match group, the `(?<value>...)` notation, and matches a Posix string starting with a alfabetic character and continuing with alfanumeric characters.
+   2. INT is a simple match of 0-9 digits
+   3. STR is a simple string beginning and terminated by single or double quotes which are in turn both excluded from within the string.
+5. The rest is matching single characters like parentheses, brackets, commas, white space and the like.
 
-The lexer match object also provides an optional callback function the allows you to modify the matched object:
-
-```
-TEXT2:   { 
-        match: XRegExp( '(?<value0>[\\p{L}0-9\\- \\t\\p{P}]+?_)(?<value>[\\p{L}0-9\\- \\t\\p{P}]+)[ \\t]*(?=$|\\n)', 'xug' ),
-        // deno-lint-ignore no-explicit-any
-        cb: ( e: any ) => { 
-            e.value = e.value0.trim() + e.value.trim()
-            return e
-        }
-    },        
-```
-
-The LexerRules is just a set of XRegExp matching patterns that will be grouped within the ParserRules. They will be called from the parser when applicable to the parser context.
-
-Look at `'./examples/lexerRules.ts'` for a more examples.
+The LexerRules is a set of XRegExp matching patterns that will be called by the Parser when applicable within the ParserRules context.
 
 ### Parser Rules
 
-As Parser Rules are defined as a set of *terminal symbols*, that refers directly to individual Lexer Rule entries and a set of *non-terminal symbols*, which is a set of user defined parser tokens.
+The Parser Rules groups the Lexer matching patterns to provide the Parser context.
 
-In it's most simple form a LHS (left hand side) non-terminal token refers directly to a set of RHS (right hand side) Lexer Rules:
+The Parser Rules are defined as a set of *terminal symbols*, that refers directly to individual Lexer Rule entries and a set of *non-terminal symbols*, which is a set of user defined parser tokens.
 
-```
-    common: {
-        expect: [
-            LR.KEY,
-            LR.METER,
-            LR.TEMPO,
-            LR.TEXT_NOTE,
-            LR.SCALE,
-            LR.SWING
-        ]
-    },
-```
-Here, the LR.KEY (...) entries within the `expect` array are direct JavaScript references to the Lexer Rules (LR) object
-
-Besides Lexer Rules the RHS can also refer to other **non-terminal** LHS symbols:
+A LHS (left hand side) non-terminal token refers directly to a set of RHS (right hand side) terminal Lexer Rules or non-terminal symbols:
 
 ```
-reset: { 
+assignment: {                // The non-terminal symbol assignment has the following definition
+    multi: '1:1',            // The multiplicity/cardinality of `assignment`, in this case match once and only once
+    expect: [                // This is what the Parser should expect the following match pattern 
+        [LR.LET,    '1:1'],  // Lexer **terminal** match pattern for 'let', that must be matched once and only once
+        [LR.IDENT,  '1:1'],  // Lexer **terminal** for 'IDENT/identifier', that must be matched once and only once
+        [LR.EQSIGN, '1:1'],  // Lexer **terminal** for 'EQSIGN/equal sign', that must be matched once and only once
+        ['rhsAssign', '1:m'] // Parser **non-terminal** for 'rhsAssign', that must be matched once or many times
+    ] 
+},
+```
+The Parser traverses the `expect` array and match the **terminal** symbols directly and the `LR.LET` is in fact a direct reference to the Lexer match token. The **non-terminal** symbols are in turn looked up in the Parser Rules and their respective `expect` arrays is executed.
+
+If the Parser fails to match the patterns or fails any of the multiplicity conditions, it backtracks. When it has exhausted all matching options without reaching the end of the input, it errors with an indication of how far it got.  
+
+Note that the default for `multi` is '0:m', zero or many, and that the '1:1' in the `expect`array above effectively acts as an AND clause. 
+
+In between each match in the `expect`array the Parser calls a *special* case, the `'always'` token/section, that is normally used to remove any leading white space:
+```
+always : {  
+    expect: [
+        [ LR.WS , '0:m', 'ignore'],
+        [ LR.NL,  '0:m' ]
+    ]
+},
+```
+The `'ignore'` as part of `LR.WS` that matches spaces and tabs. This has the effect that `LR.WS` will not be part of the parser tree output. In contrast, `LR.NL` that matches newlines will be part of the parser output. The Lexer or Parser you use within the `always` expect array should be unique to this section as not to interfere with similar matching done elsewhere. 
+
+The whole thing is started of by the `reset` section, that is the Parser entry point:  
+```
+ reset: { 
         multi: '1:m',
-        expect: [
-           'header' ,
-           'common', 
-            LR.SECTION,
-            LR.BAR,
-            LR.TEXT,
-            LR.TEXT2,
+        expect: [ 
+            ['assignment', '1:m'],
         ] 
     },
  ```
  The `'reset'` expect array also has a defined cardinality/multiplicity of `'1:m'`, one or many, that the parser will check and fail the branch if the conditioon is not meet.
 
-A sligthly more complicated example shows how you can specify the cardinality of each individual expect-entry. Also note, that the first two entries are in an exclusive OR relationship, denoted by the `'xor'`, meaning that either one and only one `LR.DURATION` or one and only one `LR.DURATION2` must be matched:
+A sligthly more complicated example shows how you can specify conditions. The two entries are in an **exclusive OR** relationship, denoted by the `'xor'`, meaning that either one and only one `LR.SEMICOLON` or one and only one `LR.WSNL` must be matched:
 
 ```
-duration: {     
+  assignEnd: {
+        multi: '1:1',
         expect: [ 
-            [ LR.DURATION,     '1:1', 'xor' ] , 
-            [ LR.DURATION2,    '1:1' ],
-            [ LR.DURATION_ADD, '0:m' ]
+            [LR.SEMICOLON, '1:1', 'xor'],
+            [LR.WSNL, '1:1' ]
         ] 
     },
 ```
 
-Other logical operators, besides `'xor'`, are not supported since the cardinalities of the entries is a good way to specify any OR and AND relationships.
+The logical operators are `'xor'` and `'or'`. Other operators are not supported since the multiplicity of the entries are a good way to specify AND conditions. You can have multiple logical operators within your `expect`array, but they cannot be nested. The Parser will avaluate these conditions and fail the match branch if they are not met.
 
-A *special* case is the `'always'` token, that will be matched always before each of the other matches. This is normally used to remove any leading white space:
+### No Left recursive rules
+
+Parlexa does not support Left recursiveness, so write your rules accordingly. Here is how to write a Right recursive rule, that does the same. Here we implement parsing for an `Array` of comma separated **integer (LR.INT)**, **string (LR.STR)** or **array (arrAssign)** entries:
 ```
-    always : {  
-        expect: [
-            [ LR.WS , '0:m', 'ignore'],
-            [ LR.NL,  '0:m' ]
-        ]
+arrAssign: {                     // Defines an Array of strings/integers or arrays
+    expect: [ 
+        [ LR.SQB_BEGIN, '1:1'],  // The left bracket '['
+        ['arrElement', '1:1'],   // A minimum of one element in the array
+        ['arrListElem', '0:m'],  // Additional optional comma separated array elements 
+        [ LR.SQB_END, '1:1']     // The right bracket ']'
+    ],
+},
+
+arrElement: {                     // Defines an element/entry within the Array
+    expect: [ 
+        [ LR.STR, '1:1', 'xor'],  // A string 
+        [ LR.INT, '1:1', 'xor'],  // An integer
+        ['arrAssign', '1:1']      // RIGHT RECURSIVE reference to an Array within an Array 
+    ] 
     },
-```
-Note the `'ignore'` as part of `LR.WS` that matches spaces and tabs. This has the effect that `LR.WS` will not be part of the parser tree output. In contrast, `LR.NL` that matches newlines will be part of the parser output. 
 
-A RHS Lexer Rule reference, i.e. `LR.FORM` may also have a LHS Parser Rule: 
-```
-    FORM: {
-        multi: '1:m',
+arrListElem: {                        // Defines additional elements/entries, each with a preceding comma
         expect: [ 
-            [LR.LIST_ENTRY, '1:m' ]
-        ]
-    },
-```
-In this case, when the Lexer Rule `LR.FORM` is matched, then the RHS Parser Rule `FORM` is automatically called (in this specific case we will try to match a list of one or more list entries).
-
-### Write you own set of Parser Rules
-
-First import some needed TypeScript type and a set of LexerRules:
-```
-import { Keys, ParserRules } from 'https://deno.land/x/parlexa/mod.ts'
-import LR from './lexerRules.ts'
-```
-Then define the parser group-token you need as a TypeScript type, that is the LHS non-terminal symbols to be used within the parser:
-```
-export type ParserTokens = 'reset' | 'header' | 'space' | 'form' |'always' | 'duration' | 'chord' | 'common' | 'commonList' 
-```
-Now you can instantiate the ParserRules object:
-```
-export const PR: ParserRules<Keys<ParserTokens, typeof LR>> = {
-    always : {  
-        expect: [
-            [ LR.WS , '0:m', 'ignore'],
-            [ LR.NL,  '0:m' ]
-        ]
-    },
-    reset: { 
-        multi: '1:m',
-        expect: [
-           'header' ,
-           'common', 
-            LR.SECTION,
-            LR.BAR,
-            LR.TEXT,
-            LR.TEXT2,
+            [ LR.COMMA, '1:1'],       // A mandatory comma
+            ['arrElement', '1:1'],    // A mandatory additional Array element
         ] 
     },
-    (...)
+
 ```
 
-The `Keys` type above is a Typescript type that allows you to access and use both your `ParserTokens` and your `LR:LexerRules` within the `PR:ParserRules` object.
+### Parser Rules Implementation 
 
-For more details, have a look at the `'./examples/parserRules.ts'` file.
+Here are the full Parser Rules implementation with comments for the simple assignment statement:
+```
+import { Keys, Matcher, MatchRecordExt, ParserRules } from "../../interfaces.ts";
+import LR from "./lexerRules.ts";
+//
+// User defined non-terminal symbols for this set of parser rules
+//
+export type ParserTokens =  
+    'reset' | 'allways' | 'assignment' | 'rhsAssign' | 
+    'intAssign' | 'strAssign' | 'arrAssign' | 'objAssign' | 
+    'assignEnd' | 'arrElement' | 'arrListElem'
+
+//
+// The definition of the rules
+// 
+export const PR: ParserRules<Keys<ParserTokens, typeof LR>> = { 
+    always : {  
+        multi: '0:m',                     // This is in fact the default, should you omit the 'multi' declaration
+        expect: [
+            [ LR.WS , '0:1', 'ignore'],   // Matching of white space will not be added to the parser tree due to 'ignore'
+            [ LR.NL,  '0:1' ]
+        ]
+    },
+    reset: {                            // The Parser entry point
+        multi: '1:m',                   // Should be matched at least once to succede
+        expect: [ 
+            ['assignment', '1:m'],  
+        ] 
+    },
+    assignEnd: {
+        multi: '1:1',                     // Try to match once and succede if found  
+        expect: [ 
+            [LR.SEMICOLON, '1:1', 'xor'], // Match Semicolon once XOR optional white space + newline once
+            [LR.WSNL, '1:1' ]
+        ] 
+    },
+    intAssign: {
+        multi: '0:1',
+        expect: [ 
+            [LR.INT, '1:1', (m, s) => {             // You can provide a callback (more on this later)
+                s.intWasHere = 'integer was here'; 
+                return m 
+            }],
+            [ 'assignEnd', '1:1' ]
+        ],
+    },
+    strAssign: {
+        multi: '0:1',
+        expect: [ 
+            [LR.STR, '1:1'],
+            ['assignEnd', '1:1']
+        ] 
+    },
+    arrElement: {
+        expect: [ 
+            //
+            // This is the alternative full match object notation for a match entry 
+            // 
+            {   match: LR.STR, 
+                multi: '1:1', 
+                logic: 'or',
+                cb: (m, s) => { s.comment = 'This is parser global user defined data' ;return m }
+            } as Matcher,
+            //
+            // And this is the short hand array notation that has the same features
+            // 
+            [LR.INT, '1:1', 'or', (m, s) => { 
+                s.intWasHere = 'integer was here'; 
+                (m as MatchRecordExt).intAssignCB = \`${m.type} Callback was here\`
+                return m 
+            }],
+            ['arrAssign', '1:1']
+        ] 
+    },
+    arrListElem: {
+        expect: [ 
+            [LR.COMMA, '1:1'],
+            [ 'arrElement', '1:1'],
+        ] 
+    },
+    arrAssign: {
+        expect: [ 
+            [ LR.SQB_BEGIN, '1:1'],
+            ['arrElement', '1:1'],
+            ['arrListElem', '0:m'],
+            [ LR.SQB_END, '1:1']
+        ],
+        cb: (m,s) => { 
+            (m as MatchRecordExt).arrAssignCB = `${m.value} Callback was here`
+            s.recId = m.id
+            s.callBackFound = true
+            return m 
+        }
+    },
+    rhsAssign: {
+        multi: '1:1',
+        expect: [ 
+            ['intAssign', '1:1', 'or'],
+            ['strAssign',   '1:1', 'or'],
+            ['arrAssign',  '1:1']    
+        ],
+    },
+    assignment: {
+        multi: '1:1',
+        expect: [ 
+            [LR.LET, '1:1'],
+            [LR.IDENT,  '1:1'],
+            [LR.EQSIGN, '1:1'],
+            ['rhsAssign', '1:m']
+        ] 
+    },
+}
+export default PR
+```
+Now you can instantiate the Parser:
+```
+import { Parser } from "./Parser.ts";
+import  LR  from "./test//basics/lexerRules.ts"
+import  LR  from "./test//basics/lexerRules.ts"
+const input = `     let øæå  = [ 1234, 'I am a string', [ 5678, 6789, 78910], 'ÆØÅ string with numbers 123456' ]`;
+const parser = new Parser( LR, PR, 'reset')
+parser.debug = false
+parser.reset(input)
+const tree = parser.getParseTree()
+```
+
+For more details, have a look at the `'./test/parserRules.ts'` file.
 
 ### Debug your Parser
 
@@ -233,3 +357,38 @@ TRYING: SECTION at 359 against: "|Am     |E7      | Gsus4 G Fsu"
 TRYING: BAR at 359 against: "|Am     |E7      | Gsus4 G Fsu"
 MATCHING: BAR
 ```
+
+
+### More Advanced LexerRules
+
+The `LexerRules` entries comes in two form:
+- A named `XRegExp` entry like `TITLE: XRegExp(...)`, or
+- An object containing a `match: XRegExp` field and a `multi` field that defines the local cardinality.
+ 
+The cardinality/multiplicity of the match is how many matches to expect, that is the minimun and maximum given as a number (or 'm' for many). The format is `'0:m'` for zero or many (the default) or i.e. `'1:1'` for one and only one or `'2:7'` for a minimum of 2 and a maximum of 7.
+
+The lexer match object also provides an optional callback function the allows you to modify the matched object:
+
+```
+TEXT2:   { 
+        match: XRegExp( '(?<value0>[\\p{L}0-9\\- \\t\\p{P}]+?_)(?<value>[\\p{L}0-9\\- \\t\\p{P}]+)[ \\t]*(?=$|\\n)', 'xug' ),
+        // deno-lint-ignore no-explicit-any
+        cb: ( e: any ) => { 
+            e.value = e.value0.trim() + e.value.trim()
+            return e
+        }
+    },        
+```
+
+A Lexer Rule reference, say `LR.FORM` may also have a LHS Parser Rule: 
+```
+    FORM: {
+        multi: '1:m',
+        expect: [ 
+            [LR.LIST_ENTRY, '1:m' ]
+        ]
+    },
+```
+In this case, when the Lexer Rule `LR.FORM` is matched, then the RHS Parser Rule `FORM` is automatically called.
+
+Look in `'test'` directory for a more examples.

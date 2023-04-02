@@ -5,12 +5,13 @@ import { LexerRules } from "../../interfaces.ts";
 const LR: LexerRules = {
     TITLE:      XRegExp( '(?<token>Title)[ \\t]*(?<colon>:)[ \\t]*(?<value>[\\p{L}0-9\\- \\t]+?)[ \\t]*(?=$|\\n)', 'xuig' ),
     AUTHOR:     XRegExp( '(?<token>Author)[ \\t]*(?<colon>:)[ \\t]*(?<value>[\\p{L}0-9\\- \\t]+?)[ \\t]*(?=$|\\n)', 'xuig' ),
-    FORM:       XRegExp( '(?<token>Form)[ \\t]*(?<colon>:)[ \\t]*(?=$|\\n)', 'gi' ),
+    FORM:       XRegExp( '(?<token>Form)[ \\t]*(?<colon>:)', 'gi' ),
     LIST_ENTRY: {
-        match:  XRegExp( '(?<token>\-)[ \\t]*(?<value>[\\p{L}0-9\\- \\t]+?)[ \\t]*(?=$|\\n)', 'xuig'),
-        multi: '1:m'
+        match:  XRegExp( '(?<token>-)[ \\t]*(?<value>[\\p{L}0-9\\- \\t]+)', 'xuig'),
+        multi: '1:1'
     },
     BAR:        XRegExp('(?<value>\\|{1,2})','xug'),
+    BAR_EOL:   XRegExp('(?<value>\\|{1,2})[ \\t]*(?=$|\\n)','xug'),
     SECTION:    XRegExp( '(?<value>[\\p{L}0-9\\- \\t]+?)[ \\t]*(?<colon>:)', 'xug' ),
     TEXT:    { 
         match: XRegExp( '(?<token>_)[\\t ]*(?<value>[^\\|\\n]+)[ \\t]*(?=$|\\n)', 'xug' ),

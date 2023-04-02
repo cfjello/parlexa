@@ -4,7 +4,8 @@ import LR from "./lexerRules.ts";
 // User defined group-tokens for this set of parser rules
 //
 export type ParserTokens = 'reset' | 'header' | 'space' | 'form' |'always' | 'duration' | 'chord' | 
-                           'common' | 'commonList' | 'minor' | 'scaleMode' | 'note' | 'scale' | 'testDummy' | 'key'
+                           'common' | 'commonList' | 'minor' | 'scaleMode' | 'note' | 'scale' | 
+                           'testDummy' | 'key' |'formList' | 'barLine' | 'barEntry' | 'barContent'
                            //                 
                          
 // ParserRules groups (key tokens below) are typed as the combination of the user defined  
@@ -25,18 +26,48 @@ export const PR: ParserRules<Keys<ParserTokens, typeof LR>> = {
             [ LR.DURATION_ADD, '0:m' ]
         ]
     },
-    SECTION: { 
+    barEntry: {
+        multi: '0:m',
+        breakOn: [ LR.NL ],
         expect: [
-            LR.BAR,
-            LR.SQ_BRACKET
+            [ LR.CHORD_NOTE , '1:1', 'xor'],
+            [ LR.REST,        '1:1', 'xor'],
+            [ LR.REPEAT_LAST, '1:1', 'xor'],
+            [ LR.SQ_BRACKET,  '1:1']
+        ]
+    },
+    BAR: {
+        multi: '1:m',
+        breakOn: [ LR.NL ],
+        expect: [
+            [ LR.REPEAT_COUNT, '0:1'],
+            [ 'barEntry', '0:m']   
+        ]
+    },
+    barLine: {
+        expect: [
+            [ LR.BAR, '1:m' ],
+           //  [ 'barContent', '0:m'],
+            [ LR.REPEAT_END,  '0:1' ],
+            [ LR.BAR_EOL, '0:m' ]
+        ]
+    },
+    SECTION: {
+        multi: '0:m',
+        expect: [
+            [ 'barLine', '0:m' ],
+            [ LR.TEXT, '0:m' ],
+            [ LR.SQ_BRACKET, '0:m' ]
         ]
     },
     header: {
+        multi: '0:m',
+        startOn: [LR.NL],
         expect: [
-            [ LR.TITLE,  '0:1' ],
-            [ LR.AUTHOR, '0:1' ], 
-            [ 'key',  '0:1' ],
-            [ LR.FORM,   '0:1' ]
+            LR.TITLE,
+            LR.AUTHOR, 
+            'key',
+            LR.FORM
         ] 
     },
     reset: { 
@@ -44,15 +75,12 @@ export const PR: ParserRules<Keys<ParserTokens, typeof LR>> = {
         expect: [
            'header' ,
            'common', 
-            LR.SECTION,
-            LR.BAR,
-            LR.TEXT
+            LR.SECTION
         ] 
     },
     FORM: {
-        multi: '1:m',
         expect: [ 
-            [LR.LIST_ENTRY, '1:m' ]
+            [ LR.LIST_ENTRY, '0:m' ]
         ]
     },
     commonList : {
@@ -95,19 +123,9 @@ export const PR: ParserRules<Keys<ParserTokens, typeof LR>> = {
             [ LR.SQ_BRACKET_END]
         ]
     },
-    BAR: {
-        multi: '1:m',
-        expect: [
-            [ LR.REPEAT_COUNT, '0:m'],
-            [ LR.CHORD_NOTE , '0:1', 'xor'],
-            [ LR.REST,        '0:1', 'xor'],
-            [ LR.REPEAT_LAST, '0:1', 'xor'],
-            [ LR.SQ_BRACKET,  '0:1', 'xor'],
-            [ LR.REPEAT_END,  '0:1' ]
-        ]
-    },
     CHORD_NOTE: {
         multi: '1:1',
+        breakOn: [ LR.BAR, LR.NL ],
         expect: [
             LR.CHORD_TYPE,
             LR.CHORD_EXT,
@@ -155,6 +173,7 @@ export const PR: ParserRules<Keys<ParserTokens, typeof LR>> = {
         ],
     },
     key: {
+        line: true,
         multi: '0:1',
         expect: [
             [LR.KEY, '1:1'],
