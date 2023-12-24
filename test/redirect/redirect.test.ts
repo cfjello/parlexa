@@ -1,4 +1,4 @@
-import { assert, assertEquals } from "https://deno.land/std/testing/asserts.ts";
+import { assert, assertEquals } from "https://deno.land/std/assert/mod.ts";
 import { angie } from "./angieData3.ts"
 import { Parser } from "../../Parser.ts";
 import  LR  from "../leadSheet/lexerRules.ts"

@@ -1,4 +1,4 @@
-import { assert } from "https://deno.land/std/testing/asserts.ts";
+import { assert } from "https://deno.land/std/assert/mod.ts";
 import { angie } from "./angieData.ts"
 import { Parser } from "../../Parser.ts";
 import  LR  from "./lexerRules.ts"
@@ -19,7 +19,7 @@ Deno.test({
     sanitizeResources: false,
     sanitizeOps: false
 })
-/*
+
 Deno.test({
     name: '02 - Parser can read a Form directive', 
     fn: () => {  
@@ -73,12 +73,14 @@ Deno.test({
         parser.reset(angie)
         const itor = parser.getIterator()   
         let count = 0
-        while ( count++ < 50 ) {
-            assert( itor.next().value !== undefined  )
-            assert( itor.next().done === false )
+        let result = itor.next()
+        while ( ! result.done) {
+            assert( result.value !== undefined  )
+            result = itor.next()
+            count++
         }
+        assert(result.done === true)
     },
     sanitizeResources: false,
     sanitizeOps: false
 })
-*/

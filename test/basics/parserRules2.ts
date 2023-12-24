@@ -1,4 +1,4 @@
-import { Keys, Matcher, MatchRecordExt, ParserRules } from "../../interfaces.ts";
+import { Keys, Matcher, MatchRecordExt, ParserRules } from "../../types.ts";
 import LR2 from "./lexerRules2.ts";
 
 //
@@ -20,7 +20,8 @@ export type ParserTokens =  'reset' | 'allways' |
 // ParserRules groups (key tokens below) are typed as the combination of the user defined  
 // ParserTokens (above) and the LexerRules instanse (LR) keys
 // 
-export const PR: ParserRules<Keys<ParserTokens, typeof LR2>> = {
+export type T2 = ParserTokens & keyof typeof LR2
+export const PR: ParserRules<T2> = {
     always : {  
         multi: '0:m',
         expect: [
@@ -65,10 +66,10 @@ export const PR: ParserRules<Keys<ParserTokens, typeof LR2>> = {
                 multi: '1:1', 
                 logic: 'or',
                 cb: (m, s) => { s.comment = 'This is parser global user defined data' ;return m }
-            } as Matcher,
+            } as Matcher<T2>,
             [LR2.INT, '1:1', 'or', (m, s) => { 
                 s.intWasHere = 'integer was here'; 
-                (m as MatchRecordExt).intAssignCB = `${m.type} Callback was here`
+                (m as MatchRecordExt<T2>).intAssignCB = `${m.type} Callback was here`
                 // console.log( `m for LR2.INT: ${JSON.stringify(m)}`)
                 return m 
             }],
@@ -77,6 +78,7 @@ export const PR: ParserRules<Keys<ParserTokens, typeof LR2>> = {
     },
 
     arrListElem: {
+        multi: '0:m',
         expect: [ 
             [LR2.COMMA, '1:1'],
             [ 'arrElement', '1:1'],
@@ -86,12 +88,12 @@ export const PR: ParserRules<Keys<ParserTokens, typeof LR2>> = {
     arrAssign: {
         expect: [ 
             [ LR2.SQB_BEGIN, '1:1'],
-            ['arrElement', '1:1'],
+            ['arrElement', '0:1'],
             ['arrListElem', '0:m'],
             [ LR2.SQB_END, '1:1']
         ],
         cb: (m,s) => { 
-            (m as MatchRecordExt).arrAssignCB = `${m.value} Callback was here`
+            (m as MatchRecordExt<T2>).arrAssignCB = `${m.value} Callback was here`
             s.recId = m.id
             s.callBackFound = true
             return m 

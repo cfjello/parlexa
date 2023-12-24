@@ -1,4 +1,4 @@
-import { Keys, ParserRules } from "../../interfaces.ts";
+import { Keys, ParserRules } from "../../types.ts";
 import LR from "./lexerRules.ts";
 //
 // User defined group-tokens for this set of parser rules

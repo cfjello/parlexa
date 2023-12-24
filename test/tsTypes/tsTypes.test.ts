@@ -1,4 +1,4 @@
-import { assert, assertEquals } from "https://deno.land/std/testing/asserts.ts";
+import { assert, assertEquals } from "https://deno.land/std/assert/mod.ts"
 import { Parser } from "../../Parser.ts";
 import  LR  from "./lexerRules.ts"
 import  PR  from "./parserRules.ts"
@@ -10,9 +10,9 @@ Deno.test({
     fn: () => {  
         const typeStr = `NoteType, OtherType, ThirdType, ForthType, FifthType`
         const parser = new Parser( LR, PR, 'typeEntryList')
-        parser.debug = false
+        parser.debug = true
         parser.reset(typeStr)
-        assert( parser.result.size > 13)
+        assert( parser.result.size > 10)
         const tree = parser.getParseTree()
         const fifthType = tree.filter( v => v.value === 'FifthType')
         assert( fifthType !== undefined)

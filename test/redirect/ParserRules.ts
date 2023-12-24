@@ -1,4 +1,4 @@
-import { ArrToObject, Expect, Keys, ParserRules } from "../../interfaces.ts";
+import { ArrToObject, Expect, Keys, ParserRules } from "../../types.ts";
 import LR from "../leadSheet/lexerRules.ts";
 //
 // User defined group-tokens for this set of parser rules

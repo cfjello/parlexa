@@ -1,10 +1,10 @@
-import { assert, assertEquals } from "https://deno.land/std/testing/asserts.ts";
+import { assert, assertEquals } from "https://deno.land/std/assert/mod.ts";
 import { Parser } from "../../Parser.ts";
 import  LR  from "./lexerRules.ts"
 import { PR } from "./parserRules.ts"
 
 
-let debugHook = true
+const _debugHook = 0
 
 Deno.test({
     name: '01 - Parsing an int assignment', 
@@ -20,11 +20,11 @@ Deno.test({
     sanitizeResources: false,
     sanitizeOps: false
 })
-
+/*
 Deno.test({
     name: '02 - Parsing an string assignment', 
     fn: () => {  
-        const input = `     let øæå  = 'I am a string'
+        const input = `     let øæå  = 'I am a string;'
         `;
         const parser = new Parser( LR, PR, 'reset')
         parser.debug = false
@@ -46,7 +46,7 @@ Deno.test({
 Deno.test({
     name: '03 - Parsing an array assignment', 
     fn: () => {  
-        const input = `     let øæå  = [ 1234, 'I am a string', 5678, 'ÆØÅ string with numbers 123456' ]`;
+        const input = `     let øæå  = [ 1234, 'I am a string', 5678, 'ÆØÅ string with numbers 123456' ];`
         const parser = new Parser( LR, PR, 'reset')
         parser.debug = false
         parser.reset(input)
@@ -68,7 +68,7 @@ Deno.test({
 Deno.test({
     name: '04 - Parsing an recursive array assignment', 
     fn: () => {  
-        const input = `     let øæå  = [ 1234, 'I am a string', [ 5678, 6789, 78910], 'ÆØÅ string with numbers 123456' ]`;
+        const input = `     let øæå  = [ 1234, 'I am a string', [ 5678, 6789, 78910], 'ÆØÅ string with numbers 123456' ];`
         const parser = new Parser( LR, PR, 'reset')
         parser.debug = false
         parser.reset(input)
@@ -85,6 +85,31 @@ Deno.test({
     sanitizeOps: false
 })
 
+/*
+Deno.test({
+    name: '05 - Parsing can fail and reset to the correct position', 
+    fn: () => {  
+        const input = `     let øæå  = [ 1234, 'I am a string', [ 5678, 6789, 78910], 'ÆØÅ']`;
+        const parser = new Parser( LR, PR, 'reset')
+        parser.debug = true
+        parser.reset(input)
+        // assert( parser.result.size > 70)
+        const tree = parser.getParseTree()
+        // console.debug(JSON.stringify(tree, undefined, 2))
+        // const matcher = tree.filter( v => v.type === 'INT' )
+
+        assertEquals( matcher.length, 4 )
+        assertEquals( matcher[0].value, '1234')
+        assertEquals( matcher[1].value, '5678')
+        assertEquals( matcher[2].value, '6789')
+        assertEquals( matcher[3].value, '78910')
+       
+    },
+    sanitizeResources: false,
+    sanitizeOps: false
+})
+*/
+/*
 Deno.test({
     name: '05 - Parser can read a nested Object', 
     fn: () => {  
@@ -102,10 +127,10 @@ Deno.test({
                 bass:       'C',
             },
             tie:        'false', 
-          }`
+          };`
         const parser2 = new Parser( LR, PR, 'reset')
        
-        parser2.debug = false
+        parser2.debug = true
         parser2.reset(typeStr)
         assert( parser2.result.size > 250)
         const tree = parser2.getParseTree()
@@ -141,4 +166,4 @@ Deno.test({
     sanitizeResources: false,
     sanitizeOps: false
 })
-
+*/

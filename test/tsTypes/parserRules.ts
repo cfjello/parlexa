@@ -1,4 +1,4 @@
-import { Keys, ParserRules } from "../../interfaces.ts";
+import { Keys, ParserRules } from "../../types.ts";
 import LR from "./lexerRules.ts";
 
 //
@@ -13,7 +13,8 @@ export type ParserTokens =  'reset' | 'typeObj' | 'typeBody' | 'space' |
 // ParserRules groups (key tokens below) are typed as the combination of the user defined  
 // ParserTokens (above) and the LexerRules instanse (LR) keys
 // 
-export const PR: ParserRules<Keys<ParserTokens, typeof LR>> = {
+export type T = ParserTokens & keyof typeof LR
+export const PR: ParserRules<T> = {
     always : {  
         multi: '0:m',
         expect: [

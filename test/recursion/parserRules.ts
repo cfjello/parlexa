@@ -1,4 +1,4 @@
-import { Keys, Matcher, MatchRecordExt, ParserRules } from "../../interfaces.ts";
+import { Keys, Matcher, MatchRecordExt, ParserRules } from "../../types.ts";
 import LR from "./lexerRules.ts";
 //
 // User defined group-tokens for this set of parser rules
@@ -45,18 +45,18 @@ export const PR: ParserRules<Keys<ParserTokens, typeof LR>> = {
     assignEnd: {
         multi: '1:1',
         expect: [ 
-            [LR.SEMICOLON, '1:1', 'xor'],
-            [LR.NL, '1:1' ]
+            [LR.SEMICOLON, '1:1', 'or'],
+            [LR.COMMA, '1:1']
         ] 
     },
     intAssign: {
         multi: '0:1',
         expect: [ 
             [LR.INT, '1:1'],
-            [ 'assignEnd', '1:1' ]
         ],
         cb: (m) => { 
-            (m as MatchRecordExt).intAssignCB = `${m.value} Callback was here`
+            // deno-lint-ignore no-explicit-any
+            (m as MatchRecordExt<any>).intAssignCB = `${m.value} Callback was here`
             return m 
         }
     },
@@ -64,7 +64,6 @@ export const PR: ParserRules<Keys<ParserTokens, typeof LR>> = {
         multi: '0:1',
         expect: [ 
             [LR.STR, '1:1'],
-            ['assignEnd', '1:1']
         ] 
     },
 
@@ -74,9 +73,9 @@ export const PR: ParserRules<Keys<ParserTokens, typeof LR>> = {
                 multi: '0:1', 
                 logic: 'or',
                 cb: (m) => { return m }
-            } as Matcher,
+            // deno-lint-ignore no-explicit-any
+            } as Matcher<any>,
             [LR.INT, '0:1', 'or', (m) => { return m } ] ,
-            ['arrAssign', '1:1']
         ] 
     },
     
@@ -111,14 +110,14 @@ export const PR: ParserRules<Keys<ParserTokens, typeof LR>> = {
             [LR.LET, '1:1'],
             [LR.IDENT,  '1:1'],
             [LR.EQSIGN, '1:1'],
-            ['rhsAssign', '1:m']
+            ['rhsAssign', '1:m'],
+            ['assignEnd', '1:1']
         ] 
     },
     objAssign:  {
         multi: '1:m',
         expect: [
             [LR.CUB_BEGIN, '1:1'],
-            ['objAssign',  '0:m', 'or' ],
             ['typeBody',   '0:1' ],
             [LR.CUB_END,   '1:1']
         ]
