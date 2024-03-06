@@ -1,4 +1,4 @@
-import { Keys, Matcher, MatchRecordExt, ParserRules } from "../../types.ts";
+import { Keys, MatcherT, MatchRecordExt, ParserRules } from "../../types.ts";
 import LR from "./lexerRules.ts";
 //
 // User defined group-tokens for this set of parser rules
@@ -74,7 +74,7 @@ export const PR: ParserRules<Keys<ParserTokens, typeof LR>> = {
                 logic: 'or',
                 cb: (m) => { return m }
             // deno-lint-ignore no-explicit-any
-            } as Matcher<any>,
+            } as MatcherT<any>,
             [LR.INT, '0:1', 'or', (m) => { return m } ] ,
         ] 
     },

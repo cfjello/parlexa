@@ -30,10 +30,10 @@ export const PR: ParserRules<Keys<ParserTokens, typeof LR>> = {
         multi: '0:m',
         breakOn: [ LR.NL ],
         expect: [
-            [ LR.CHORD_NOTE , '1:1', 'xor'],
-            [ LR.REST,        '1:1', 'xor'],
-            [ LR.REPEAT_LAST, '1:1', 'xor'],
-            [ LR.SQ_BRACKET,  '1:1']
+            [ LR.CHORD_NOTE , '0:1', 'xor'],
+            [ LR.REST,        '0:1', 'xor'],
+            [ LR.REPEAT_LAST, '0:1', 'xor'],
+            [ LR.SQ_BRACKET,  '0:1']
         ]
     },
     BAR: {

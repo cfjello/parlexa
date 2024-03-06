@@ -1,4 +1,4 @@
-import { assertEquals } from "https://deno.land/std/testing/asserts.ts";
+import { assert, assertEquals } from "https://deno.land/std/assert/mod.ts"
 import { Logic } from "../../Logic.ts";
 
 const DebugHook = 'dummy'

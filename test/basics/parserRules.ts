@@ -1,18 +1,33 @@
-import { Matcher, MatchRecordExt, ParserRules } from "../../types.ts";
-import LR from "./lexerRules.ts";
-//
-// User defined non-terminal for this set of parser rules
-//
-export type ParserTokens =  
-    'reset' | 'allways' | 'assignment' | 'rhsAssign' | 
-    'intAssign' | 'strAssign' | 'arrAssign' | 'objAssign' | 
-    'assignEnd' | 'arrElement' | 'arrListElem' | 'assign4BackTrack' | 'assign4Real'
 
-//
-// The definition of the rules
-// 
-export type T = ParserTokens & keyof typeof LR
-export const PR: ParserRules<T> = {
+import { Matcher, MatchRecordExt, ParserRules} from "../../types.ts";
+import  LR  from "./lexerRules.ts";
+
+
+
+// Type gymnastics
+export const parserTokens = [ 
+    'reset', 'always', 'assignment', 'rhsAssign', 'intAssign', 'strAssign', 
+    'arrAssign', 'assignEnd', 'arrElement', 'arrListElem', 
+    'assign4BackTrack', 'assign4Real' ] as const 
+
+export type ParserTokens = typeof parserTokens[number]  
+
+// User defined data for this parser and testing
+export type UserData = { 
+    comment: string, 
+    intWasHere: string, 
+    callBackFound: boolean, 
+    recId: string, 
+    intAssignCB: string, 
+    arrAssignCB: Array<string> 
+}  
+
+export type LexerTokens = keyof typeof LR 
+
+export type Tokens = LexerTokens | ParserTokens 
+
+// User defined non-terminal for this set of parser rules
+export const PR: ParserRules<Tokens, UserData> = {
     always : {  
         multi: '0:m',
         expect: [
@@ -23,20 +38,22 @@ export const PR: ParserRules<T> = {
     reset: { 
         multi: '1:m',
         expect: [ 
+            // ['XXX', '1:m'],
             ['assignment', '1:m'],
         ] 
     },
     assignEnd: {
         multi: '1:1',
         expect: [ 
-            [LR.SEMICOLON, '1:1', 'xor'],
-            [LR.WSNL, '1:1' ]
+            [LR.SEMICOLON, '1:1']
+            // [LR.SEMICOLON, '1:1', 'xor'],
+            // [LR.WSNL, '1:1' ]
         ] 
     },
     intAssign: {
         multi: '0:1',
         expect: [ 
-            [LR.INT, '1:1', (m, s) => { 
+            [LR.INT, '1:1', (m: MatchRecordExt<Tokens>, s: UserData) => { 
                 s.intWasHere = 'integer was here'; 
                 return m 
             }],
@@ -55,19 +72,17 @@ export const PR: ParserRules<T> = {
         multi: '1:1',
         expect: [ 
             {   match: LR.STR, 
-                multi: '1:1', 
+                multi: '0:1', 
                 logic: 'xor',
                 cb: (m, s) => { s.comment = 'This is parser global user defined data' ;return m }
-            // deno-lint-ignore no-explicit-any
-            } as Matcher<any>,
-            [LR.INT, '1:1', 'xor', (m, s) => { 
-                s.intWasHere = 'integer was here';
-                s.callBackFound = true;
-                // deno-lint-ignore no-explicit-any
-                (m as MatchRecordExt<any>).intAssignCB = `${m.type} Callback was here`
+            } as Matcher<Tokens, UserData>,
+            [LR.INT, '0:1', 'xor', (m: MatchRecordExt<Tokens>, u: UserData) => { 
+                u.intWasHere = 'integer was here';
+                u.callBackFound = true;
+                m.intAssignCB = `${m.type} Callback was here`
                 return m 
             }],
-            ['arrAssign', '1:1']
+            ['arrAssign', '0:1']
         ] 
     },
 
@@ -86,8 +101,8 @@ export const PR: ParserRules<T> = {
             ['arrListElem', '0:m'],
             [ LR.SQB_END, '1:1']
         ],
-        cb: (m,s) => { 
-            (m as MatchRecordExt<T>).arrAssignCB = `${m.value} Callback was here`
+        cb: (m: MatchRecordExt<Tokens>, s: UserData) => { 
+            m.arrAssignCB = [`${m.value} Callback was here`]
             s.recId = m.id
             s.callBackFound = true
             return m 
@@ -123,7 +138,7 @@ export const PR: ParserRules<T> = {
         ] 
     },
     assignment: {
-        multi: '1:1',
+        multi: '1:m',
         expect: [ 
             ['assign4Real', '1:1', 'xor'],
             ['assign4BackTrack',  '1:1']

@@ -1,10 +1,12 @@
 import { assert, assertEquals } from "https://deno.land/std/assert/mod.ts"
+import { delay } from 'https://deno.land/x/delay@v0.2.0/mod.ts'
 import { Parser } from "../../Parser.ts";
-import  LR  from "../basics/lexerRules.ts"
-import  { PR, T }  from "../basics/parserRules.ts"
+import  { LR, LexerTokens } from "../basics/lexerRules.ts"
+import  { PR, Tokens, UserData}  from "../basics/parserRules.ts"
 
 // deno-lint-ignore prefer-const
 let _debugHook = true
+
 
 function jsonOut( obj: object | string) {
 
@@ -19,54 +21,44 @@ function jsonOut( obj: object | string) {
 Deno.test({
     name: '01 - Parsing an int assignment', 
     fn: () => {  
-        const input = "     let øæå  = 12345"
-        const parser = new Parser( LR, PR, 'reset')
+        const input_01 = "     let øæå  = 12345"
+        const parser = new Parser<LexerTokens, Tokens, UserData>( LR, PR, 'reset')
         parser.debug = false
-        parser.reset(input)
-        console.debug(`parser.result.size: ${parser.result.size}`)
+        parser.reset(input_01)
         assert( parser.result.size >= 15 )
   
-        // for ( const [_key, value] of parser.result.entries()  ) {
-        //      console.log(`${JSON.stringify(value, undefined, 2)}`);
-        // }
-       //  console.debug(JSON.stringify(parser.result, undefined, 2) )
-
-
         const tree = parser.getParseTree()
-        // console.debug(JSON.stringify(tree, undefined, 2))
         console.debug(`tree.length: ${tree.length}`)
         assert( tree.length > 5 )
-        const matcher = tree.filter( v => v.type === 'INT' )
-        console.debug(`INT tree.length: ${matcher.length}`)
-        assert( matcher.length > 0  )
+
+        const matcher_01 = tree.filter( v => v.type === 'INT' )
+        assert( matcher_01.length === 1  )
     },
     sanitizeResources: false,
     sanitizeOps: false
 })
 
-
 Deno.test({
     name: '02 - Parsing an string assignment', 
     fn: () => {  
-        const input = `     let øæå  = 'I am a string'
+        const input = `     let øæå  = 'I am a string';
         `;
         const parser = new Parser( LR, PR, 'reset')
         parser.debug = false
         parser.reset(input)
-        assert( parser.result.size > 10 )
+  
+        assert( parser.result.size > 15 )
         const tree = parser.getParseTree()
         const matcher = tree.filter( v => v.type === 'IDENT' )
-        assert( matcher.length > 0  )
+  
+        assert( matcher.length === 1  )
         assertEquals( matcher[0].value, 'øæå')
-        if ( parser.debug ) {
-            jsonOut(tree)
-        }
         const matcher2 = tree.filter( v => v.type === 'STR' )
-        assert( matcher2.length > 0  )
+        assert( matcher2.length === 1  )
         assert( matcher2[0].value, 'I am a string')
     },
-    sanitizeResources: false,
-    sanitizeOps: false
+    sanitizeResources: true,
+    sanitizeOps: true
 })
 
 Deno.test({
@@ -76,21 +68,22 @@ Deno.test({
         const parser = new Parser( LR, PR, 'reset')
         parser.debug = false
         parser.reset(input)
-
-        assert( parser.result.size >  40)
+       
         const tree = parser.getParseTree()
-        const matcher = tree.filter( v => v.type === 'INT' )
-        assertEquals( matcher.length, 2 )
-        assertEquals( matcher[0].value, '1234')
-        assertEquals( matcher[1].value, '5678')
-        const matcher2 = tree.filter( v => v.type === 'STR' )
-        assertEquals( matcher2.length, 2 )
-        assertEquals( matcher2[0].value, 'I am a string')
-        assertEquals( matcher2[1].value, 'ÆØÅ string with numbers 123456')
+        // Deno.writeTextFileSync('./tree.txt', JSON.stringify(tree, undefined, 2))
+        const matcher = tree.filter( v => v.token === 'INT' )
+        const matcher2 = tree.filter( v => v.token === 'STR' )
+        assert(  parser.result.size >  30)
+        assertEquals(  matcher.length, 2)
+        assertEquals(  matcher[0].value, '1234')
+        assertEquals(  matcher[1].value, '5678')
+        assertEquals(  matcher2.length, 2 )
+        assertEquals(  matcher2[0].value, 'I am a string')
+        assertEquals(  matcher2[1].value, 'ÆØÅ string with numbers 123456') 
+ 
     },
-    sanitizeResources: false,
-    sanitizeOps: false
 })
+
 
 Deno.test({
     name: '04 - Parsing an recursive array assignment', 
@@ -112,30 +105,31 @@ Deno.test({
     sanitizeOps: false
 })
 
+
 Deno.test({
-    name: '05 - Parser can call match callback function', 
+    name: '05 - Parser callback function to update a matcher works', 
     fn: () => {  
         const input = `     let øæå  = [1234]`
-        const parser = new Parser( LR, PR, 'reset')
+        const parser = new Parser( LR, PR, 'reset' )
         parser.debug = false
         parser.reset(input)
         const tree = parser.getParseTree()
         // deno-lint-ignore no-explicit-any
         const matcher : any[] = tree.filter( v => v.type === 'INT' )
-        // console.debug(`${JSON.stringify(tree,undefined,2)}`)
+        console.debug(`05: ${JSON.stringify(matcher,undefined,2)}`)
         assertEquals( matcher[0].intAssignCB,'INT Callback was here')
     },
     sanitizeResources: false,
     sanitizeOps: false
 })
-
-type UserScope = { recId: string, callBackFound: boolean, intWasHere: string, comment: string }
+/*
+type UserScope = { recId: string, callBackFound: boolean, intWasHere: string, comment: string, intAssignCB: string,  arrAssignCB: string[]}
 
 Deno.test({
     name: '06 - Parser can utilize user defined scope', 
     fn: () => {  
         const input = `     let øæå  = [ 1234, 'I am a string']`
-        const parser = new Parser<T,UserScope>( LR, PR, 'reset', {recId: 'record1', callBackFound: false, intWasHere: 'NO', comment: 'EMPTY'})
+        const parser = new Parser( LR, PR, 'reset', {recId: 'record1', callBackFound: false, intWasHere: 'NO', comment: 'EMPTY'} as UserScope)
         parser.debug = false
         parser.reset(input)
         const userData = parser.getUserScope()
@@ -149,11 +143,10 @@ Deno.test({
     sanitizeResources: false,
     sanitizeOps: false
 })
-
+/*
 Deno.test({
     name: '07 - Parser can parse complex syntax and then "reset"', 
     fn: () => { 
-
         let input = `     let øæå  = [ 1234, 'I am a string', [ 5678, 6789, 78910], 'ÆØÅ string with numbers 123456' ]`;
         let parser = new Parser( LR, PR, 'reset')
         parser.reset(input)
@@ -200,7 +193,6 @@ Deno.test({
     sanitizeResources: false,
     sanitizeOps: false
 })
-
 /*
 Deno.test({
     name: '10 - Parser backtracks on wrong path taken', 

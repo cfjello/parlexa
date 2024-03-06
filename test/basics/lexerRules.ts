@@ -1,8 +1,7 @@
 // @deno-types='https://deno.land/x/xregexp/types/index.d.ts'
 import XRegExp from  'https://deno.land/x/xregexp/src/index.js'
-import { LexerRules } from "../../mod.ts";
 
-const LR: LexerRules= {
+export const LR = {
     IDENT:      XRegExp( '(?<value>\\p{L}[\\p{L}0-9]*)', 'xuig' ),
     INT:        XRegExp( '(?<value>[0-9]+)', 'xug' ),
     STR:        XRegExp( '[\'"](?<value>[^\'"\\n]+)[\'"]', 'xuig' ),
@@ -17,7 +16,9 @@ const LR: LexerRules= {
     SEMICOLON:  XRegExp('(?<value>;)', 'xug'),
     NL:         XRegExp('(?<value>[\\n\\r]+?)', 'g'), 
     WS:         XRegExp('(?<value>[ \\t]+)', 'g'),
-    WSNL:       XRegExp('(?<value>[ \\t]+[\\n\\r]+)', 'g'),
-} as const
+    WSNL:       XRegExp('(?<value>[ \\t]*[\\n\\r]+)', 'g'),
+}
+
+export type LexerTokens = keyof typeof LR
 
 export default LR

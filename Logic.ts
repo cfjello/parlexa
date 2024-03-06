@@ -40,7 +40,7 @@ export class Logic {
         this.roundTrips = ld.roundTrip > this.roundTrips ? ld.roundTrip : this.roundTrips 
     }
 
-    setIMatch<T>( m: InternMatcher<T>, matched: boolean) {
+    setIMatch<T extends string,U>( m: InternMatcher<T,U>, matched: boolean) {
         if ( m.logicGroup > -1 ) {
             this.setMatch({ key: m.keyExt!, group: m.logicGroup, idx: m.logicIdx, roundTrip: m.roundTrips, tries: m.tries, logic: m.logic, matched: matched, matchCnt: matched ? 1 : 0 })
         }
@@ -53,7 +53,7 @@ export class Logic {
             // console.debug( `isMatched() for token ${this.token}`) 
             logic = this.logicGroups[group][roundTrip][0].logic
 
-            assert ( logic !== '' && logic !== undefined, `Logic.isMatched(): logic for group: ${group} at roundTrip: ${roundTrip} is ${logic}`)
+            assert ( logic !== '' && logic !== undefined, `Logic.isMatched(): logic for group: ${group} at roundTrip: ${roundTrip} is empty or undefined`)
             const matches = this.logicGroups[group][roundTrip]
                 .filter( f => { if ( f.logic !== 'NOP' && f.matched === true ) return f } )
             

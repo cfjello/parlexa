@@ -1,4 +1,4 @@
-import { assert, assertEquals } from "https://deno.land/std/testing/asserts.ts";
+import { assert, assertEquals } from "https://deno.land/std/assert/mod.ts"
 import { angie } from "../leadSheet/angieData.ts"
 import { Parser } from "../../Parser.ts";
 import  LR  from "../leadSheet/lexerRules.ts"
@@ -12,7 +12,7 @@ Deno.test({
     name: '01 - Parser can load initial logic conditions', 
     fn: () => {  
         const parser = new Parser( LR, PR, 'reset')
-        const map = parser.logicMap
+        const map = parser.rules.logicMap
         const bar = map.get('barEntry')!.logicGroups[0][0]
         assertEquals( bar.length, 4 )
         const note = map.get('note')!.logicGroups[0][0]

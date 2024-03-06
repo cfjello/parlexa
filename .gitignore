@@ -5,3 +5,4 @@ res.out
 debug.ts
 .gitignore
 test/log.txt
+/zodTypes
