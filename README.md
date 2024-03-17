@@ -4,6 +4,8 @@ Parlexa is a Lexer and Parser in Deno that takes advantage of TypeScript's type 
 
 The algorithm is a top down recursive non-determistic parser with backtracking. It also has some additional bells and whistles that are described below. It is not not Left Recursive, so write your parser rules accordingly.
 
+**Note: This new version has some breaking changes** 
+
 
 # Overview
 
@@ -82,9 +84,8 @@ Let us define a set of Lexer Rules for a simple assigment statement:
 ```
 // @deno-types='https://deno.land/x/xregexp/types/index.d.ts'
 import XRegExp from  'https://deno.land/x/xregexp/src/index.js'
-import { LexerRules } from "https://deno.land/x/parlexa/mod.ts";
 
-const LR: LexerRules = {
+const LR = {
     IDENT:      XRegExp( '(?<value>\\p{L}[\\p{L}0-9]*)', 'xuig' ),
     INT:        XRegExp( '(?<value>[0-9]+)', 'xug' ),
     STR:        XRegExp( '[\'"](?<value>[^\'"\\n]+)[\'"]', 'xuig' ),
@@ -106,13 +107,11 @@ export default LR
 Here is what happens:
 
 1. Import XRegExp, the types and the package
-2. Import the LexerRules type as defined in Parlexa
-3. Import the ParserRules - this defines the grammer of what is being parsed 
-4. Using XRegExp expressions, define the Lexer terminal tokens:
+2. Using XRegExp expressions, define the Lexer terminal tokens:
    1. IDENT matches an identifier that is defined as a named match group, the `(?<value>...)` notation, and matches a Posix string starting with a alfabetic character and continuing with alfanumeric characters.
    2. INT is a simple match of 0-9 digits
    3. STR is a simple string beginning and terminated by single or double quotes which are in turn both excluded from within the string.
-5. The rest is matching single characters like parentheses, brackets, commas, white space and the like.
+3. The rest is matching single characters like parentheses, brackets, commas, white space and the like.
 
 The LexerRules is a set of XRegExp matching patterns that will be called by the Parser when applicable within the ParserRules context.
 
@@ -214,6 +213,17 @@ Here are the full Parser Rules implementation with comments for the simple assig
 import { Keys, Matcher, MatchRecordExt, ParserRules } from "../../interfaces.ts";
 import LR from "./lexerRules.ts";
 //
+// Type of a UserData object that your supply and control, an object that can modified using callbacks - se below in the parser definition   
+//
+export type UserData = { 
+    comment: string, 
+    intWasHere: string, 
+    callBackFound: boolean, 
+    recId: string, 
+    intAssignCB: string, 
+    arrAssignCB: Array<string> 
+} 
+//
 // User defined non-terminal symbols for this set of parser rules
 //
 export type ParserTokens =  
@@ -224,7 +234,7 @@ export type ParserTokens =
 //
 // The definition of the rules
 // 
-export const PR: ParserRules<Keys<ParserTokens, typeof LR>> = { 
+export const PR: ParserRules<ParserTokens | keyof typeof LR, UserData> = { 
     always : {  
         multi: '0:m',                     // This is in fact the default, should you omit the 'multi' declaration
         expect: [
@@ -328,8 +338,9 @@ Now you can instantiate the Parser:
 import { Parser } from "./Parser.ts";
 import  LR  from "./test//basics/lexerRules.ts"
 import  LR  from "./test//basics/lexerRules.ts"
+
 const input = `     let øæå  = [ 1234, 'I am a string', [ 5678, 6789, 78910], 'ÆØÅ string with numbers 123456' ]`;
-const parser = new Parser( LR, PR, 'reset')
+const parser = new Parser( LR, PR, 'reset' )
 parser.debug = false
 parser.reset(input)
 const tree = parser.getParseTree()
