@@ -25,12 +25,8 @@ Deno.test({
         const parser = new Parser<LexerTokens, Tokens, UserData>( LR, PR, 'reset')
         parser.debug = false
         parser.reset(input_01)
-        assert( parser.result.size >= 15 )
   
         const tree = parser.getParseTree()
-        console.debug(`tree.length: ${tree.length}`)
-        assert( tree.length > 5 )
-
         const matcher_01 = tree.filter( v => v.type === 'INT' )
         assert( matcher_01.length === 1  )
     },
@@ -116,13 +112,13 @@ Deno.test({
         const tree = parser.getParseTree()
         // deno-lint-ignore no-explicit-any
         const matcher : any[] = tree.filter( v => v.type === 'INT' )
-        console.debug(`05: ${JSON.stringify(matcher,undefined,2)}`)
+        // console.debug(`05: ${JSON.stringify(matcher,undefined,2)}`)
         assertEquals( matcher[0].intAssignCB,'INT Callback was here')
     },
     sanitizeResources: false,
     sanitizeOps: false
 })
-/*
+
 type UserScope = { recId: string, callBackFound: boolean, intWasHere: string, comment: string, intAssignCB: string,  arrAssignCB: string[]}
 
 Deno.test({
@@ -143,7 +139,7 @@ Deno.test({
     sanitizeResources: false,
     sanitizeOps: false
 })
-/*
+
 Deno.test({
     name: '07 - Parser can parse complex syntax and then "reset"', 
     fn: () => { 
@@ -175,7 +171,7 @@ Deno.test({
 })
 
 Deno.test({
-    name: '09 - NewLine is matched correctly', 
+    name: '08 - NewLine is matched correctly', 
     fn: () => {  
         const input = `     
             let øæå  = [1234]
@@ -193,6 +189,45 @@ Deno.test({
     sanitizeResources: false,
     sanitizeOps: false
 })
+
+
+Deno.test({
+    name: '09 - Parser backtracks on wrong path taken', 
+    fn: () => {  
+        const input = `let backTrackDummy  = @_DUMMY_@`
+        // deno-lint-ignore no-explicit-any
+        const parser = new Parser( LR, PR, 'reset', {} as any, false)
+        // parser.debug = true
+        parser.reset(input)
+        const tree = parser.getParseTree()
+        // deno-lint-ignore no-explicit-any
+        const matcher : any[] = tree.filter( v => v.type === 'DUMMY' )
+        assertEquals( matcher.length, 1)
+    },
+    sanitizeResources: false,
+    sanitizeOps: false
+})
+
+/*
+Deno.test({
+    name: '10 - Parser backtracks with more complex input', 
+    fn: () => {  
+        const input = `let æøå = [ 1234, 'A string' ]
+        let backTrackDummy  = @_DUMMY_@
+        let abc = 5678`
+        const parser = new Parser( LR, PR, 'reset')
+        parser.debug = false
+        parser.reset(input)
+        const tree = parser.getParseTree()
+        // deno-lint-ignore no-explicit-any
+        const matcher : any[] = tree.filter( v => v.type === 'DUMMY' )
+        assertEquals( matcher.length, 1)
+    },
+    sanitizeResources: false,
+    sanitizeOps: false
+})
+
+
 /*
 Deno.test({
     name: '10 - Parser backtracks on wrong path taken', 

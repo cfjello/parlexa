@@ -99,7 +99,7 @@ export type Info<T extends string> = {
 export type Cardinality = `${0|1}:${(number|'m')}`
 
 /// deno-lint-ignore no-explicit-any
-export type Callback<T extends string,U> =  ( m: MatchRecordExt<T>, s: U) => MatchRecordExt<T> | undefined
+export type Callback<T extends string,U> =  ( m: MatchRecordExt<T>, u: U) => void
 
 export type  Matcher<T extends string,U> = {
     match  : RegExp,
@@ -224,14 +224,14 @@ export type ExpectMap<T extends string, U>       = {
 }
 
 
-export type ShortEntryKey<T>    = RegExp | T 
-export type ShortExpectEntry<T extends string,U> = ShortEntryKey<T> | Cardinality | Logical | Callback<T,U>
-export type ExpectEntry<T extends string,U>      = Array<ShortExpectEntry<T,U>> | Matcher<T,U>
+export type ShortEntryKey<T extends string,U>    = RegExp | T | Matcher<T,U>
+export type ShortExpectEntry<T extends string,U> = ShortEntryKey<T,U>  | Cardinality  | Logical | Callback<T,U>
+export type ExpectEntry<T extends string,U>      = Array<ShortExpectEntry<T,U>> | Matcher<T,U> | T | RegExp
 
 export type Expect<T extends string,U> = { 
     multi?: Cardinality, 
     // line?:  boolean,
-    breakOn?: Array<RegExp>, //  | Matcher<T,U>>,
+    breakOn?: Array<RegExp>,
     expect: Array<ExpectEntry<T,U>>, 
     cb?:    Callback<T,U>  
 }
@@ -301,6 +301,7 @@ export class BreaksFac<T> {
 
 export const retValues = [ 
     'matched', 
+    'notMatched',
     'EOF',
     'branchFailed',
     'parserFailed',
@@ -308,7 +309,7 @@ export const retValues = [
     'alreadyMatched', 
     'MatchOutOfRange',
     'logicGroupFailed',
-    '__unknown__' 
+    'other' 
 ] as const
 export type retValuesT    = typeof retValues[number]
 export type ValidationRT  = { ok: boolean, err: string }

@@ -13,14 +13,14 @@ export const iMatcherFac = <L extends string,T extends string,U>(
             // deno-lint-ignore no-explicit-any
             let iMatcher = {} as any
             let idx      = _idx 
-            const pos    = s.isc.goingInPos
+            const pos    = p.pos // s.isc.goingInPos
 
             if ( caller === 'parseExpect' ) {
                 idx = idx < 0 ? s.matchers.length -1 : _idx
                 iMatcher = s.matchers[idx]
             }
             else if ( caller === 'parseNT' ) {
-                // Called from reset() or ParseNT
+                // Called from ParseNT
                 iMatcher.regexp = undefined
                 iMatcher.parentId = s.isc.parentId
             }
@@ -30,7 +30,8 @@ export const iMatcherFac = <L extends string,T extends string,U>(
             }
 
             iMatcher.id = ulid()
-            if ( iMatcher.regexp ) iMatcher.regexp.lastIndex = s.isc.goingInPos
+            // if ( iMatcher.regexp ) iMatcher.regexp.lastIndex = s.isc.goingInPos
+            if ( iMatcher.regexp ) iMatcher.regexp.lastIndex = pos
             
             // Get the current token's multi-cardinality
             if ( ! iMatcher.multi ) {

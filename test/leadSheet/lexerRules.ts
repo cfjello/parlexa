@@ -1,28 +1,28 @@
 // @deno-types='https://deno.land/x/xregexp/types/index.d.ts'
 import XRegExp from  'https://deno.land/x/xregexp/src/index.js'
-import { LexerRules } from "../../types.ts";
+import { MatchRecordExt } from '../../mod.ts';
+import { UserData } from './parserRules.ts';
+import { Cardinality } from '../../types.ts';
 
-const LR: LexerRules = {
+const LR = {
     TITLE:      XRegExp( '(?<token>Title)[ \\t]*(?<colon>:)[ \\t]*(?<value>[\\p{L}0-9\\- \\t]+?)[ \\t]*(?=$|\\n)', 'xuig' ),
     AUTHOR:     XRegExp( '(?<token>Author)[ \\t]*(?<colon>:)[ \\t]*(?<value>[\\p{L}0-9\\- \\t]+?)[ \\t]*(?=$|\\n)', 'xuig' ),
     FORM:       XRegExp( '(?<token>Form)[ \\t]*(?<colon>:)', 'gi' ),
     LIST_ENTRY: {
         match:  XRegExp( '(?<token>-)[ \\t]*(?<value>[\\p{L}0-9\\- \\t]+)', 'xuig'),
-        multi: '1:1'
+        multi: '1:1' as Cardinality
     },
     BAR:        XRegExp('(?<value>\\|{1,2})','xug'),
     BAR_EOL:   XRegExp('(?<value>\\|{1,2})[ \\t]*(?=$|\\n)','xug'),
     SECTION:    XRegExp( '(?<value>[\\p{L}0-9\\- \\t]+?)[ \\t]*(?<colon>:)', 'xug' ),
     TEXT:    { 
         match: XRegExp( '(?<token>_)[\\t ]*(?<value>[^\\|\\n]+)[ \\t]*(?=$|\\n)', 'xug' ),
-        // deno-lint-ignore no-explicit-any
-        cb: ( e: any ) => { 
+        cb: ( matchRec: MatchRecordExt<string>, _userData: UserData ) => { 
             try {
-                e.value = e.value.trim()
-                return e
+                matchRec.value = ( matchRec.value as string).trim()
             }
             catch(err) {
-                console.log(`${JSON.stringify(e)} got: ${err}`)
+                console.log(`${JSON.stringify(matchRec)} got: ${err}`)
             }
         }
     },
@@ -38,10 +38,8 @@ const LR: LexerRules = {
     TEXT_NOTE2: XRegExp('(?<token>@)(?<who>[\\p{L}0-9\- \\t]+?)[ \t]*(?<colon>[\:])[ \t]*(?<value>[\\p{L}0-9\- \\t]+?)[ \\t]*(?=,|\\]|$|\\n)', 'xuig'),
     SCALE: { 
         match:  XRegExp( '(?<token>Scale|S)[ \\t]*:', 'xig' ),
-        // deno-lint-ignore no-explicit-any
-        cb: (e: any) => {
-            e.type  = 'SCALE'
-            return e
+        cb: (matchRec: MatchRecordExt<string>, _userData: UserData) => {
+            matchRec.type  = 'SCALE'
         }
     },
     SWING:  XRegExp( '(?<token>Swing)[ \t]*:[ \t]*(?<value>[0-9]{1,2}%)[ \\t]*(?=,|\\]|$|\\n)','xig'),
@@ -68,19 +66,17 @@ const LR: LexerRules = {
     DURATION:       XRegExp('(?<token>,)(?<value>[0-9]{1,2})', 'xg'),
     DURATION2:  { 
         match: XRegExp('(?<token>,)(?<value>[whtq])', 'xg'),
-        // deno-lint-ignore no-explicit-any
-        cb: (e: any) => {
+        cb: (matchRec: MatchRecordExt<string>, _userData: UserData) => {
             const tokens = ['w','h','t','q']
-            e.value = tokens.indexOf(e.token) + 1
-            e.type  = 'DURATION'
-            return e
+            matchRec.value = tokens.indexOf(matchRec.token) + 1
+            matchRec.type  = 'DURATION'
         }
     },
     DURATION_ADD:   XRegExp('(?<token>[\-\+]{1})(?<value>[0-9]{1,2})', 'xg'),
     GROOVE_ADJUST:  XRegExp('(?<direction>[<|>])(?<value>[0-9]{1,3})', 'xg'),
     CHORD_NOTE: { 
         match: XRegExp('(?<value>A|B|C|D|E|F|G)(?<sharpFlat>[#|b]{0,1})', 'xg'),
-        multi: '1:1'
+        multi: '1:1' as Cardinality
     },
     REST:       XRegExp('(?<value>R)', 'xig'),
     CHORD_TYPE: XRegExp('(?<value>[S|s]us2|[S|s]us4|[D|d]im|[A|a]ug|[M|m]ajor|[M|m]aj|[M|m]inor|[Q|q]uatal|[M|m]in|M|m|Q|q|5)', 'xg'),
@@ -102,5 +98,7 @@ const LR: LexerRules = {
     MODE:   XRegExp('(?<value>Ionian|Ion|Dorian|Dor|Phygian|Phy|Lydian|Lyd|Mixolydian|mixo|mix|Aeolian|Aeo|Natural|Nat|Locrian|Loc)\\.{0,1}','xig'),
     REPEAT_LAST: XRegExp('(?<token>\/)', 'xg'),
 }
+
+// export type LexerTokens = keyof typeof LR
 
 export default LR

@@ -217,7 +217,7 @@ import LR from "./lexerRules.ts";
 // User defined non-terminal symbols for this set of parser rules
 //
 export type ParserTokens =  
-    'reset' | 'allways' | 'assignment' | 'rhsAssign' | 
+    'reset' | 'always' | 'assignment' | 'rhsAssign' | 
     'intAssign' | 'strAssign' | 'arrAssign' | 'objAssign' | 
     'assignEnd' | 'arrElement' | 'arrListElem'
 

@@ -21,15 +21,14 @@ import {
     LexerRules
 } from "./types.ts"
 import { Logic } from "./Logic.ts";
+import { Debug } from './Debug.ts';
 
 export interface IIndexable<T> { [key: string]: T }
 
 export class Rules<L extends string, T extends string, U> {
     // Debugging
-    debug     = false;
+    msg
     debugHook = 0
-    // deno-lint-ignore no-explicit-any
-    private __debug__ = ( args: any ) => { if ( this.debug ) console.debug(args) }
     
     // Logic groups initialization
     logicMap = new Map<string, Logic>() 
@@ -39,8 +38,8 @@ export class Rules<L extends string, T extends string, U> {
     LRReverseMap  = new Map<RegExp | Matcher<T,U>, T>()
     PRMap         = new Map<T, ExpectMap<T,U>>()         // Maps the Parser object  
 
-    constructor( public LR: LexerRules<L,U>,  public PR: ParserRules<T,U> ) {
-        // this.__debug__('INTO Parser constructor()')
+    constructor( public LR: LexerRules<L,U>,  public PR: ParserRules<T,U> , public debugging: Debug ) {
+        this.msg = debugging.msg
         const multiDefault: Cardinality  = '0:m'
         try {
         // Map Building 
@@ -83,12 +82,14 @@ export class Rules<L extends string, T extends string, U> {
             assert( token === this.LRReverseMap.get(matcher.match), `LR_03 - Bad LRReverseMap Object Key`)
         })
 
-        // this.__debug__( `KEYS: ${Object.keys( PR )}`)
-
         Object.keys( PR ).forEach( key => {
             const pr = (PR as IIndexable<Expect<T,U>>)[key] 
             const expect:  InternMatcher<T,U>[] = []
-            this.__debug__ (`Mapping key: ${key} with type: ${typeof key}`)
+            this.msg ({
+                level: 0,
+                text: `Mapping key: ${key} with type: ${typeof key}`,
+                color: 'green'
+            })
 
             pr.expect.forEach( ( e: ExpectEntry<T,U>) => {
                 if ( typeof e === 'string') {
@@ -180,7 +181,12 @@ export class Rules<L extends string, T extends string, U> {
                 m.logicApplies  = true
                 m.logic         = this._logic
                 this._logicActive = false
-                this.__debug__(`Create Logic for -> ${logicKey}: ${JSON.stringify(this.logicMap.get(logicKey))}`)
+                this.msg ({
+                    level: 0,
+                    text: `Create Logic for -> ${logicKey}: ${JSON.stringify(this.logicMap.get(logicKey))}`,
+                    color: 'green'
+                })
+                // this.__debug__(`Create Logic for -> ${logicKey}: ${JSON.stringify(this.logicMap.get(logicKey))}`)
                 this.logicMap.get(logicKey)!.setMatch({ key: m.key, group: m.logicGroup, idx: m.logicIdx, logic: m.logic, roundTrip:0, tries: 0,  matched: false, matchCnt: 0 })
             }
             else {
@@ -365,7 +371,8 @@ export class Rules<L extends string, T extends string, U> {
             }
             else { // Assume Matcher
                 res.type    = 'Matcher'
-                res.token   = this.LRReverseMap.get(v as unknown as Matcher<T,U>)!
+                // res.token   = this.LRReverseMap.get(v as unknown as Matcher<T,U>)!
+                res.token   = this.LRReverseMap.get((v as Matcher<T,U>).match) as T
                 const m     = this.LRMap.get(res.token)
                 res.key     = res.token
                 res.regexp  = m!.match

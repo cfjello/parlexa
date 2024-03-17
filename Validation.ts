@@ -3,35 +3,22 @@
 //
 import { Debug } from "./Debug.ts";
 import { assert } from "./imports.ts";
-import { InternMatcher, InternMatcherExt, InternMatcherSealed, ValidationRT } from "./types.ts";
+import { DebugLogFunc, InternMatcher, InternMatcherExt, ValidationRT } from "./types.ts";
 import { ParseFuncScope } from "./types.ts";
-import { getMulti } from "./util.ts";
 
 
-export class  Validation {
-    private static instance: Validation | null = null;
-    private debug: boolean;
-    // Debugging
-    private _debugger: Debug 
-
-    private constructor(debug: boolean) {
-        if ( Validation.instance ) {
-            throw new Error("Error: Instantiation failed: Use Validation.getInstance() instead of new.");
-        }
-        this.debug = debug;
-        this._debugger = Debug.getInstance(debug)
-    }
-    
-    static getInstance (debug: boolean): Validation {
-        if ( ! Validation.instance ) {
-            Validation.instance = new Validation(debug);      
-        }
-        return Validation.instance;
+export class  Validation<L,T,U> {
+    debugger: Debug 
+    msg: DebugLogFunc
+ 
+    constructor(_debugger: Debug ) {
+        this.debugger = _debugger
+        this.msg = _debugger.msg
     }
 
-    static progress = <L extends string,T extends string,U>(s: ParseFuncScope<L,T,U>, pos: number) : boolean => ( pos > s.isc.goingInPos )
+    progress = <L extends string,T extends string,U>(s: ParseFuncScope<L,T,U>, pos: number) : boolean => ( pos > s.isc.goingInPos )
 
-    static inRange =  <L extends string, T extends string,U>(s: ParseFuncScope<L,T,U>): boolean => { 
+    inRange =  <L extends string, T extends string,U>(s: ParseFuncScope<L,T,U>): boolean => { 
         let ret = false
         try {
             if ( s.iMatcher ) {
@@ -47,32 +34,34 @@ export class  Validation {
         return ret
     }
 
-    static branchFailed = <T extends string,U>( 
+    branchFailed = <T extends string,U>( 
         iMatcher: InternMatcherExt<T,U>
         ): boolean => { 
             return ( iMatcher.status && iMatcher.status.includes('branchFailed') ) ?? false 
         }
     
-    static funcScopeBranchFailed = <L extends string,T extends string,U>( 
+    funcScopeBranchFailed = <L extends string,T extends string,U>( 
         s: ParseFuncScope<L,T,U>
         ): boolean => { 
-            return Validation.branchFailed(s.iMatcher) 
+            return this.branchFailed(s.iMatcher) 
         }
-    
-        // matched = (s: ParseFuncScope<T,U>, pos: number): boolean => ( ! this.branchFailed(s) && this.progress(s, pos) && this.inRange(s) )
 
-    static matched  = <L extends string,T extends string,U>(
+    matched  = <L extends string,T extends string,U>(
         s: ParseFuncScope<L,T,U>, 
         // p: ParserSharedScope<T,U>, 
         pos: number
         ): boolean => {
             const  last = s.matchers.length -1
             const iMatcher = s.matchers[last]
-            return ( this.branchFailed(iMatcher) && this.progress(s, pos) && this.inRange(s) ) 
+            const failed = this.branchFailed(iMatcher)
+            const progress = this.progress(s, pos)
+            const inRange = this.inRange(s)
+            return ( ! failed && progress && inRange )
+            // return ( this.branchFailed(iMatcher) && this.progress(s, pos) && this.inRange(s) ) 
         }
 
 
-    static validLogicGroup = <L extends string,T extends string,U>(
+    validLogicGroup = <L extends string,T extends string,U>(
         s: ParseFuncScope<L,T,U>, 
         idx = s.matchers.length -1,
         ): ValidationRT => {
@@ -95,7 +84,7 @@ export class  Validation {
                         // __debug__(Colors.bgBrightYellow(`${getIndent(s.isc.level+1)} Logic for ${s.iMatcher.keyExt}: ${s.iMatcher.logicLast}`) )
                         if ( ! s.logic.isMatched(iMatcher.logicGroup, s.isc.roundTrips)  ) { 
                             // Logic group is not matched
-                            Debug.__debug__( {
+                            this.msg( {
                                 level: s.isc.level+1,
                                 color: 'bgBrightYellow',
                                 text: `Logic match failure for ${iMatcher.keyExt}`
@@ -105,7 +94,7 @@ export class  Validation {
                             ret = { ok: false, err: failBranchMsg }
                         }
                         else {
-                            Debug.__debug__( {
+                            this.msg( {
                                 level: s.isc.level+1,
                                 color: 'bgBrightYellow',
                                 text: `Logic matched for ${iMatcher.keyExt}`
@@ -125,7 +114,7 @@ export class  Validation {
             return ret
         }
 
-    static validLogic = <L extends string,T extends string,U>( s: ParseFuncScope<L,T,U>, optimistic = false ): ValidationRT => {
+    validLogic = <L extends string,T extends string,U>( s: ParseFuncScope<L,T,U>, optimistic = false ): ValidationRT => {
         let ret = { ok: true, err: '' }
         try {
            
@@ -174,7 +163,7 @@ export class  Validation {
         return ret
     }
 
-    static matchInRange = <T extends string,U>(iMatcher: InternMatcherExt<T,U> ): ValidationRT => {
+    matchInRange = <T extends string,U>(iMatcher: InternMatcherExt<T,U> ): ValidationRT => {
         const ret = { ok: true, err: ''}
         if ( iMatcher.logic  === 'none' ) {
             ret.ok = ( iMatcher.matchCnt >=  iMatcher.min ) && ( iMatcher.matchCnt <= iMatcher.max )
@@ -191,7 +180,7 @@ export class  Validation {
         return ret 
     }
 
-    static validMatchCounts = <L extends string,T extends string,U>(s: ParseFuncScope<L,T,U>): ValidationRT => {
+    validMatchCounts = <L extends string,T extends string,U>(s: ParseFuncScope<L,T,U>): ValidationRT => {
         assert(s.isc.token, `validMatchCounts(): s.isc.token is undefined`)
         assert( s.eMap.expect.length > 0, `validMatchCounts(): eMap.expect.length is 0`)
 
@@ -199,7 +188,7 @@ export class  Validation {
         try {
             s.matchers.every( ( iMatcher: InternMatcherExt<T,U>, _idx: number ) => { 
                 if ( iMatcher.logic === 'none') {
-                    const inRange = Validation.matchInRange(iMatcher)
+                    const inRange = this.matchInRange(iMatcher)
                     if ( ! inRange.ok ) {
                         ret = { ok: false, err: `Match count out of range for ${iMatcher.keyExt}: ${inRange.err}` }
                         s.iMatcher.setStatus('branchFailed', ret.err)
@@ -250,8 +239,8 @@ export class  Validation {
     }
     */ 
 
-    static validExpect = <L extends string,T extends string,U>(s: ParseFuncScope<L,T,U>, optimistic = false): boolean => {
-        let valid = s.iMatcher.matched  // && s.iMatcher.offsets.at(-1)! > s.isc.goingInPos 
+    validExpect = <L extends string,T extends string,U>(s: ParseFuncScope<L,T,U>, optimistic = false): boolean => {
+        let valid = true
         try { 
             if ( ! this.validLogic(s, optimistic).ok ) {
                 valid = false

@@ -1,4 +1,4 @@
-import { Keys, ParserRules } from "../../types.ts";
+import { ParserRules } from "../../types.ts";
 import LR from "./lexerRules.ts";
 //
 // User defined group-tokens for this set of parser rules
@@ -10,8 +10,19 @@ export type ParserTokens = 'reset' | 'header' | 'space' | 'form' |'always' | 'du
                          
 // ParserRules groups (key tokens below) are typed as the combination of the user defined  
 // ParserTokens (above) and the LexerRules instanse (LR) keys
+
+// export type ParserTokens = typeof parserTokens[number]  
+
+// User defined data for this parser and testing
+export type UserData = { 
+    comment: string, 
+}  
+
+export type LexerTokens = keyof typeof LR 
+
+export type Tokens = LexerTokens | ParserTokens 
 // 
-export const PR: ParserRules<Keys<ParserTokens, typeof LR>> = {
+export const PR: ParserRules<ParserTokens | LexerTokens, UserData> = {
     always: {  
         expect: [
             [ LR.WS , '0:m', 'ignore'],
@@ -62,7 +73,6 @@ export const PR: ParserRules<Keys<ParserTokens, typeof LR>> = {
     },
     header: {
         multi: '0:m',
-        startOn: [LR.NL],
         expect: [
             LR.TITLE,
             LR.AUTHOR, 
@@ -173,7 +183,6 @@ export const PR: ParserRules<Keys<ParserTokens, typeof LR>> = {
         ],
     },
     key: {
-        line: true,
         multi: '0:1',
         expect: [
             [LR.KEY, '1:1'],

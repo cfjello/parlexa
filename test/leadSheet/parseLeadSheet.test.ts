@@ -1,8 +1,9 @@
-import { assert } from "https://deno.land/std/assert/mod.ts";
+import { assert, assertEquals } from "https://deno.land/std/assert/mod.ts";
 import { angie } from "./angieData.ts"
 import { Parser } from "../../Parser.ts";
 import  LR  from "./lexerRules.ts"
 import { PR } from "./parserRules.ts"
+// deno-lint-ignore no-explicit-any
 export interface PIndexable { [key: string]: any }
 
 Deno.test({
@@ -14,7 +15,10 @@ Deno.test({
         parser.reset(titleStr)
         assert( parser.result.size >= 11 )
         const tree = parser.getParseTree()
-        assert( tree.length >= 8 )
+        const matcher = tree.filter( v => v.type === 'TITLE' )
+        assertEquals( matcher.length, 1)
+        const matcher2 = tree.filter( v => v.type === 'AUTHOR' )
+        assertEquals( matcher2.length, 1)
     },
     sanitizeResources: false,
     sanitizeOps: false
@@ -28,8 +32,9 @@ Deno.test({
         parser.debug = false
         parser.reset(titleStr)
         const tree = parser.getParseTree()
-        assert(parser.result.size >= 38)
-        assert(tree.length >=  26)
+        // deno-lint-ignore no-explicit-any
+        const matcher : any[] = tree.filter( v => v.type === 'LIST_ENTRY' )
+        assertEquals( matcher.length, 6)
     },
     sanitizeResources: false,
     sanitizeOps: false
@@ -71,7 +76,7 @@ Deno.test({
         const parser = new Parser( LR, PR, 'reset')
         parser.debug = false
         parser.reset(angie)
-        const itor = parser.getIterator()   
+        const itor = parser.getTreeIterator()   
         let count = 0
         let result = itor.next()
         while ( ! result.done) {

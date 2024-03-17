@@ -18,6 +18,7 @@ export const matchRecFac = <L extends string,T extends string, U>(
               value:    '',
               text:     '',
               ws:       false,
+              ignore:   iMatcher.ignore,
               offsets:  [s.isc.goingInPos], 
               ofLen:    p.input.length,
               line:     p.line,

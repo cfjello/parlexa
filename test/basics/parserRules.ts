@@ -75,7 +75,7 @@ export const PR: ParserRules<Tokens, UserData> = {
                 multi: '0:1', 
                 logic: 'xor',
                 cb: (m, s) => { s.comment = 'This is parser global user defined data' ;return m }
-            } as Matcher<Tokens, UserData>,
+            } satisfies Matcher<Tokens, UserData>,
             [LR.INT, '0:1', 'xor', (m: MatchRecordExt<Tokens>, u: UserData) => { 
                 u.intWasHere = 'integer was here';
                 u.callBackFound = true;
@@ -101,11 +101,11 @@ export const PR: ParserRules<Tokens, UserData> = {
             ['arrListElem', '0:m'],
             [ LR.SQB_END, '1:1']
         ],
-        cb: (m: MatchRecordExt<Tokens>, s: UserData) => { 
-            m.arrAssignCB = [`${m.value} Callback was here`]
-            s.recId = m.id
-            s.callBackFound = true
-            return m 
+        cb: (matchRec: MatchRecordExt<Tokens>, userData: UserData) => { 
+            matchRec.arrAssignCB = [`${matchRec.value} Callback was here`]
+            userData.recId = matchRec.id
+            userData.callBackFound = true
+            return matchRec 
         }
     },
 
