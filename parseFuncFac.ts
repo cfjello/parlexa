@@ -19,7 +19,7 @@ export const parseFuncFac = <L extends string,T extends string,U>(
         try {
             const isc = {
                 token:      token, 
-                parentId:   parent?.iMatcher.id ?? '',
+                parentId:   parent?.iMatcher.id ?? '__root__',
                 parentIdx:  parent ? parent.matchers.length - 1 : -1,
                 level:      ( parent?.isc.level ?? 0 ) + 1, 
                 roundTrips: parent?.isc.roundTrips ?? 1,
@@ -54,7 +54,7 @@ export const parseInit = <L extends string,T extends string ,U>(
                 s.iMatcher = parent!.matchers[isc.parentIdx]
             }
             else {
-                s.iMatcher = iMatcherFac( 'parseNT', s as Sealed<ParseFuncScope<L,T,U>, 'eMap' | 'isc'>, -1, p)
+                s.iMatcher = iMatcherFac( parent ? 'parseNT' : 'reset', s as Sealed<ParseFuncScope<L,T,U>, 'eMap' | 'isc'>, -1, p)
             }
             // Add Match Record to the state
             s.mRec = matchRecFac(

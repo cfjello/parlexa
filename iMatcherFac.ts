@@ -18,6 +18,7 @@ export const iMatcherFac = <L extends string,T extends string,U>(
             if ( caller === 'parseExpect' ) {
                 idx = idx < 0 ? s.matchers.length -1 : _idx
                 iMatcher = s.matchers[idx]
+                iMatcher.parentId = iMatcher.parentId ?? s.iMatcher.id
             }
             else if ( caller === 'parseNT' ) {
                 // Called from ParseNT
@@ -30,7 +31,6 @@ export const iMatcherFac = <L extends string,T extends string,U>(
             }
 
             iMatcher.id = ulid()
-            // if ( iMatcher.regexp ) iMatcher.regexp.lastIndex = s.isc.goingInPos
             if ( iMatcher.regexp ) iMatcher.regexp.lastIndex = pos
             
             // Get the current token's multi-cardinality
