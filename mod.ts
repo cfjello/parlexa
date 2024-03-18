@@ -1,2 +1,3 @@
 export  { Parser } from "./Parser.ts"
-export type { ParserRules, LexerRules, MatchRecord, MatchRecordExt } from "./types.ts"
+export { Debug } from "./Debug.ts"
+export type { ParserRules, MatchRecord, MatchRecordExt } from "./types.ts"
