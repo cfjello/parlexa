@@ -21,7 +21,7 @@ import {
     LexerRules
 } from "./types.ts"
 import { Logic } from "./Logic.ts";
-import { Debug } from './Debug.ts';
+import { Debug } from './InfoLogger.ts';
 
 export interface IIndexable<T> { [key: string]: T }
 

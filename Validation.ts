@@ -1,7 +1,7 @@
 //
 // Progress and validation functions
 //
-import { Debug } from "./Debug.ts";
+import { Debug } from "./InfoLogger.ts";
 import { assert } from "./imports.ts";
 import { DebugLogFunc, InternMatcher, InternMatcherExt, ValidationRT } from "./types.ts";
 import { ParseFuncScope } from "./types.ts";

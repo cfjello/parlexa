@@ -21,7 +21,7 @@ import {
 import { iMatcherFac } from './iMatcherFac.ts'
 import { parserSharedFac, ParserSharedScope } from './parserSharedFac.ts'
 import { getMulti } from './util.ts'
-import { Debug } from './Debug.ts'
+import { Debug } from './InfoLogger.ts'
 import { parseFuncFac } from './parseFuncFac.ts'
 import { matchRecFac } from './matchRecFac.ts'
 import { Validation } from './Validation.ts'

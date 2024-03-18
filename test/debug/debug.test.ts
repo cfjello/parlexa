@@ -1,5 +1,5 @@
 import { assert, assertEquals, assertExists  } from "https://deno.land/std/assert/mod.ts"
-import { Debug } from "../../Debug.ts"
+import { Debug } from "../../InfoLogger.ts"
 import { DebugArgs, DebugLogFunc } from "../../types.ts";
 import { Colors } from "../../imports.ts";
 
