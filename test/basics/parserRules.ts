@@ -53,9 +53,8 @@ export const PR: ParserRules<Tokens, UserData> = {
     intAssign: {
         multi: '0:1',
         expect: [ 
-            [LR.INT, '1:1', (m: MatchRecordExt<Tokens>, s: UserData) => { 
+            [LR.INT, '1:1', (_m: MatchRecordExt<Tokens>, s: UserData) => { 
                 s.intWasHere = 'integer was here'; 
-                return m 
             }],
             [ 'assignEnd', '1:1' ]
         ],
@@ -79,8 +78,7 @@ export const PR: ParserRules<Tokens, UserData> = {
             [LR.INT, '0:1', 'xor', (m: MatchRecordExt<Tokens>, u: UserData) => { 
                 u.intWasHere = 'integer was here';
                 u.callBackFound = true;
-                m.intAssignCB = `${m.type} Callback was here`
-                return m 
+                m.intAssignCB = `${m.token} Callback was here`
             }],
             ['arrAssign', '0:1']
         ] 
@@ -105,7 +103,6 @@ export const PR: ParserRules<Tokens, UserData> = {
             matchRec.arrAssignCB = [`${matchRec.value} Callback was here`]
             userData.recId = matchRec.id
             userData.callBackFound = true
-            return matchRec 
         }
     },
 

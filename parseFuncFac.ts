@@ -17,12 +17,13 @@ export const parseFuncFac = <L extends string,T extends string,U>(
     hasIMatcher: boolean
     ): ParseFuncScope<L,T,U>  => {
         try {
+
             const isc = {
                 token:      token, 
                 parentId:   parent?.iMatcher.id ?? '__root__',
                 parentIdx:  parent ? parent.matchers.length - 1 : -1,
                 level:      ( parent?.isc.level ?? 0 ) + 1, 
-                roundTrips: parent?.isc.roundTrips ?? 1,
+                roundTrips: ( parent?.isc.roundTrips ?? 0 ) + 1,
                 goingInPos: p.pos,
                 breaks:     parent?.isc.breaks.slice() ?? []
             } satisfies ParseArgs<T>
@@ -52,6 +53,7 @@ export const parseInit = <L extends string,T extends string ,U>(
             // create the result match record for the token  
             if ( parent && hasIMatcher) {
                 s.iMatcher = parent!.matchers[isc.parentIdx]
+                s.iMatcher.roundTrips = isc.roundTrips
             }
             else {
                 s.iMatcher = iMatcherFac( parent ? 'parseNT' : 'reset', s as Sealed<ParseFuncScope<L,T,U>, 'eMap' | 'isc'>, -1, p)

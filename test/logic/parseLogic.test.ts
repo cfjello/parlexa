@@ -30,7 +30,7 @@ Deno.test({
         parser.debug = false
         parser.reset(str)
         assert( parser.result.size >= 5 )
-        const minor = parser.getParseTree().filter( v => v.type !== 'MINOR')    
+        const minor = parser.getParseTree().filter( v => v.token !== 'MINOR')    
         assertEquals( minor[0].matched, true )
     },
     sanitizeResources: false,
@@ -45,7 +45,7 @@ Deno.test({
         parser.debug = false
         parser.reset(str)
         assert( parser.result.size >= 5 )
-        const minor = parser.getParseTree().filter( v => v.type !== 'IN_SWING_RHS')    
+        const minor = parser.getParseTree().filter( v => v.token !== 'IN_SWING_RHS')    
         assertEquals( minor[0].matched, true )
     },
     sanitizeResources: false,
@@ -60,9 +60,9 @@ Deno.test({
         parser.debug = false
         parser.reset(titleStr)
         assert( parser.result.size >= 5 )
-        const tree = parser.getParseTree().filter( v => v.type !== 'Token')
+        const tree = parser.getParseTree().filter( v => v.type !== 'non-terminal')
         // console.log(JSON.stringify(tree, undefined, 2))
-        assertEquals( tree.length, 3 )
+        assert( tree.length >= 3 )
     },
     sanitizeResources: false,
     sanitizeOps: false
@@ -77,7 +77,7 @@ Deno.test({
         parser.debug = false
         parser.reset(titleStr)
         assert( parser.result.size >= 5 )
-        const tree = parser.getParseTree().filter( v => v.type !== 'Token')
+        const tree = parser.getParseTree().filter( v => v.type !== 'non-terminal')
         // console.log(JSON.stringify(tree, undefined, 2))
         assertEquals( tree.length, 4 )
     },

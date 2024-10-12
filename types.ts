@@ -1,10 +1,7 @@
 // @deno-types='https://deno.land/x/xregexp/types/index.d.ts'
 // import XRegExp from  'https://deno.land/x/xregexp/src/index.js'
-
-import * as  z  from "https://deno.land/x/zod@v3.22.4/mod.ts"
 import { Logic } from "./Logic.ts";
 import { Parser } from "./Parser.ts";
-import { XRegExp } from "./imports.ts";
 
 export interface IIndexable<T> { [key: string]: T }
 
@@ -38,20 +35,20 @@ export class XorGroup {
 export const logicOpers = [ 'or', 'xor', 'ignore', 'NOP', 'none' ] as const 
 export type Logical     = typeof logicOpers[number] // This is the typescript magic that makes the integration work
 
+export type TypeVal = 'terminal' | 'non-terminal' | 'regexp' | 'matcher' | 'unknown'
+
 // The output representation from the parser
 export type MatchRecord<T extends string> = {
     level:      number,
     id:         string,
     ident?:     string, 
-    type:       string,
+    type:       TypeVal,
     token:      T,
     value:      number | string,
     tokenExt:   string,
     text:       string,
     ws:         boolean,
-    // offset:     number,
     offsets:    number[],   
-    // newPos:     number,
     ofLen:      number,
     line:       number,
     col:        number,
@@ -128,6 +125,7 @@ export type Breaks<T> = {
     level:      number,
     lastPos:    number,
     breakOnPPGT: RegExp[],
+    startOn:    RegExp[],
     // eMap:        ExpectMap<T>,
     debug?:      boolean
 }
@@ -149,6 +147,9 @@ export type InternMatcher<T extends string,U> = {
     idx:        number,
     multi:      Cardinality, 
     breaks:     RegExp[],
+    breakIdx?:  number,
+    starts:     RegExp[],  
+    startIdx?:  number, 
     roundTrips: number,
     tries:      number,
     matchCnt:   number,
@@ -157,15 +158,15 @@ export type InternMatcher<T extends string,U> = {
     logicIdx:   number,
     logicLast:  boolean,
     ignore:     boolean, 
-    type:       string,
+    type:       TypeVal,
     regexp?:    RegExp,
     cbLex?:     Callback<T,U>,
     cb?:        Callback<T,U>,
-    parent?:     string,
+    parent?:    string,
     parentId?:  string,
     keyExt?:    string,
     logicApplies: boolean,
-    matched:    boolean,
+    matched:    boolean
     // failed:     boolean
 }
 
@@ -175,9 +176,9 @@ export type InternMatcherExt<T extends string,U> = InternMatcher<T,U> & {
     min:        number,
     max:        number,
     offsets:    number[],
-    // newPos:     number,
     status:     retValuesArrayT,
     retry:      boolean,    
+    roundtripFailed: boolean,
     errors:     string[],
     branchFailed: () => boolean,
     setStatus: ( s: retValuesT, errMsg: string ) => void   
@@ -185,20 +186,7 @@ export type InternMatcherExt<T extends string,U> = InternMatcher<T,U> & {
 
 
 export type retValuesArrayT = Array<retValuesT>
-/*
-export type parserReturnT<T> = MatchRecord<T> & {
-    status:     retValuesArrayT, 
-    tokenStr:   string,
-    level:      number,
-    roundTrips: number,
-    min:        number,
-    max:        number,
-    retry:      boolean,    
-    errors:     string[],
-    branchFailed: () => boolean,
-    setStatus: ( s: retValuesT, errMsg: string ) => void        
-}
-*/
+
 /*
 export type Required<T> = {
     [P in keyof T]-?: T[P]
@@ -217,7 +205,7 @@ export type ExpectMap<T extends string, U>       = {
     min:            number,
     max:            number,
     breaks:         Array<RegExp>,
-    // startOnStr?:    Array<string>,
+    starts:         Array<RegExp>,
     breakOnStr:     Array<string>,
     expect:         Array<InternMatcher<T,U>> 
     cb?:            Callback<T,U>, 
@@ -229,40 +217,16 @@ export type ShortExpectEntry<T extends string,U> = ShortEntryKey<T,U>  | Cardina
 export type ExpectEntry<T extends string,U>      = Array<ShortExpectEntry<T,U>> | Matcher<T,U> | T | RegExp
 
 export type Expect<T extends string,U> = { 
-    multi?: Cardinality, 
-    // line?:  boolean,
-    breakOn?: Array<RegExp>,
-    expect: Array<ExpectEntry<T,U>>, 
-    cb?:    Callback<T,U>  
+    multi?:     Cardinality, 
+    breakOn?:   Array<RegExp>,
+    startOn?:   Array<RegExp>,
+    expect:     Array<ExpectEntry<T,U>>, 
+    cb?:        Callback<T,U>  
 }
 
 export type ParserRules<T extends string, U> = Partial<Record<T, Expect<T,U>>>
-// export type ParserFields<T extends string, L extends string> = Record< T, string> 
-// export type LHS<P extends string, L extends string> = ParserFields<P,L>
-// export type ParserRules<T extends string, U> = Record< T, Expect<T,U>>  
 export type LexerRules<T extends string, U> = Record< T, RegExp | Matcher<T,U> > 
 
-/*
-export type ShortExpectEntry<T> = Array< MatcherT<T> | RegExp | T | Cardinality | Logical | Callback >
-export type ExpectEntry<T>      = ShortExpectEntry<T> | MatcherT<T> | RegExp | T
-export type MatchEntry<T>       = MatcherT<T> | RegExp | T | Array<MatcherT<T> | T | Cardinality>
-*/
-// export type ParserTokens = z.infer<typeof ZT.allTokens>
-/// export type ParserRules<T extends string, U>     = Record<T, Expect>  
-
-// 'BOL' | 'BOF' | 
-/*
-export type Keys<G,L>       = G | L | 'NOP' | '__undef__' | 'unknown' | 'init'
-// export func = () => typeof P
-export type ArrToObject<A extends readonly string[], E> = {
-    [K in A[number]]: E;
-}
-
-// export type ParserRules2<A,L> = Record<Keys< ArrToObject<A>, typeof L>, Expect<T>>
-export interface ArgsObject {
-  [key: string]: string
-}
-*/ 
 export type ParseArgs<T extends string> = {
     token:      T, 
     parentId:   string, 
@@ -280,24 +244,10 @@ export type ParseFuncScope<L extends string, T extends string, U = unknown> = {
     iMatcher:   InternMatcherExt<T,U>, 
     mRec:       MatchRecordExt<T>, 
     logic:      Logic, 
-    breaks:     Array<RegExp> 
+    breaks:     Array<RegExp>, 
+    starts:     Array<RegExp>, 
     matchers:   Array<InternMatcherSealed<T,U>>,
 }
-
-/*
-export class BreaksFac<T> {
-    constructor(
-        public token:   T,
-        public roundTrips: number,
-        public idx:     number, 
-        public level:   number,
-        public lastPos: number,
-        public breakOnPPGT: RegExp[],
-        // public startOnPPGT: RegExp[],
-        // public eMap: ExpectMap<T,U> 
-    ) {}
-}
-*/
 
 export const retValues = [ 
     'matched', 
@@ -314,40 +264,4 @@ export const retValues = [
 export type retValuesT    = typeof retValues[number]
 export type ValidationRT  = { ok: boolean, err: string }
 export type ValidationMap = Map<number, ValidationRT>
-
-/*
-export type parserReturnT<T> = { 
-    id:         string,
-    offset:     number,
-    status:     retValuesArrayT, 
-    token:      T,
-    tokenStr:   string,
-    tokenExt:   string,
-    level:      number,
-    roundTrips: number,
-    min:        number,
-    max:        number,
-    matches:    number,
-} 
-*/
-
-
-
-
-/*
-export class parseArgsD implements ParseArgsS { 
-    constructor( 
-        public token: string, 
-        public parentId = '__undefined__', 
-        public level = 1, 
-        public roundTrips = 1, 
-        public breaks: BreakOnS
-        ) {}
-} 
-
-export type parseFuncScopeT = {
-    args:       ParseArgsS,
-    breaks:     BreakOnS
-}
-*/
 

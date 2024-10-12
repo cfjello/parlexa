@@ -57,7 +57,6 @@ export class  Validation<L,T,U> {
             const progress = this.progress(s, pos)
             const inRange = this.inRange(s)
             return ( ! failed && progress && inRange )
-            // return ( this.branchFailed(iMatcher) && this.progress(s, pos) && this.inRange(s) ) 
         }
 
 
@@ -81,7 +80,6 @@ export class  Validation<L,T,U> {
                         }      
                     }
                     if ( iMatcher.logicLast ) {
-                        // __debug__(Colors.bgBrightYellow(`${getIndent(s.isc.level+1)} Logic for ${s.iMatcher.keyExt}: ${s.iMatcher.logicLast}`) )
                         if ( ! s.logic.isMatched(iMatcher.logicGroup, s.isc.roundTrips)  ) { 
                             // Logic group is not matched
                             this.msg( {
@@ -116,8 +114,7 @@ export class  Validation<L,T,U> {
 
     validLogic = <L extends string,T extends string,U>( s: ParseFuncScope<L,T,U>, optimistic = false ): ValidationRT => {
         let ret = { ok: true, err: '' }
-        try {
-           
+        try {    
             const logicChk = [] as boolean[]
             const logicApplies = s.eMap.expect.some( e => e.logicApplies )
             if ( ! logicApplies ) {
@@ -165,7 +162,7 @@ export class  Validation<L,T,U> {
 
     matchInRange = <T extends string,U>(iMatcher: InternMatcherExt<T,U> ): ValidationRT => {
         const ret = { ok: true, err: ''}
-        if ( iMatcher.logic  === 'none' ) {
+        if ( ! iMatcher.logicApplies ) {
             ret.ok = ( iMatcher.matchCnt >=  iMatcher.min ) && ( iMatcher.matchCnt <= iMatcher.max )
             if ( ! ret.ok ) {
                 ret.err = `Match count out of range for ${iMatcher.keyExt}`
@@ -205,53 +202,25 @@ export class  Validation<L,T,U> {
         return ret
     }
 
-    /*
-    static matchInRangeDEL = <L extends string,T extends string,U>(s: ParseFuncScope<L,T,U>, idx = s.matchers.length -1): ValidationRT => {
-        const ret = { ok: true, err: ''}
-        try {
-            assert ( idx >= 0 && s.eMap.expect.length > idx, `IDX ERROR in matchInRange(): index out of range: ${idx}`)
-            const iMatcher = s.matchers[idx]
-            if ( iMatcher ) {
-                if ( iMatcher.logic  === 'none' ) {
-                    ret.ok = ( iMatcher.matchCnt >=  iMatcher.min ) && ( iMatcher.matchCnt <= iMatcher.max )
-                    if ( ! ret.ok ) {
-                        ret.err = `Match count out of range for ${iMatcher.keyExt}`
-                    }
+    validExpect = <L extends string,T extends string,U>(
+        s: ParseFuncScope<L,T,U>, 
+        optimistic       = false,
+        ignoreRoundTrips = false
+    ): boolean => {
+        let valid = true // s.iMatcher.roundTrips <= s.iMatcher.max
+        if ( s.iMatcher.roundTrips <= s.iMatcher.min || ignoreRoundTrips ) {
+            try { 
+                if ( ! this.validLogic(s, optimistic).ok ) {
+                    valid = false
                 }
-                else {
-                    ret.ok = ! ( iMatcher.matchCnt > s.iMatcher.max )
-                    if ( ! ret.ok ) {
-                        ret.err = `Match count exceded range for ${iMatcher.keyExt}`
-                    }
+                else if ( ! this.validMatchCounts(s).ok ) {
+                    valid = false
                 }
             }
-            else {
-                const [min, _max] = getMulti(s.eMap.expect[idx].multi)
-                ret.ok = min === 0 || s.eMap.expect[idx].logicApplies
-                if ( ! ret.ok ) ret.err = `Match failed minimum count for ${s.eMap.expect[idx].keyExt}`
+            catch (err) { 
+                console.error(err)
+                throw err 
             }
-        }
-        catch (err) { 
-            console.error(err)
-            throw err 
-        }
-        return ret
-    }
-    */ 
-
-    validExpect = <L extends string,T extends string,U>(s: ParseFuncScope<L,T,U>, optimistic = false): boolean => {
-        let valid = true
-        try { 
-            if ( ! this.validLogic(s, optimistic).ok ) {
-                valid = false
-            }
-            else if ( ! this.validMatchCounts(s).ok ) {
-                valid = false
-            }
-        }
-        catch (err) { 
-            console.error(err)
-            throw err 
         }
         return valid
     }

@@ -1,5 +1,3 @@
-import { ParseArgs } from "./types.ts";
-
 export const  getMulti = (multi: string): number[] => {
     let res: number[] = [] 
     try {

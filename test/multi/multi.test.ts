@@ -15,10 +15,10 @@ Deno.test({
         parser.debug = false
         parser.reset(angie)
         const tree = parser.getParseTree()
-        const keyMatches = tree.filter( v => v.type === 'KEY')  
+        const keyMatches = tree.filter( v => v.token === 'KEY')  
         // console.log(JSON.stringify(tree, undefined, 2))
         assertEquals(keyMatches.length, 1) 
-        // const form = tree.filter( v => v.type === 'FORM')
+        // const form = tree.filter( v => v.token === 'FORM')
         // assertEquals(form.length, 1) 
     },
     sanitizeResources: false,
@@ -33,7 +33,7 @@ Deno.test({
         parser.debug = false
         parser.reset(str)
         assert( parser.result.size >= 5 )
-        const minor = parser.getParseTree().filter( v => v.type !== 'IN_SWING_RHS')    
+        const minor = parser.getParseTree().filter( v => v.token !== 'IN_SWING_RHS')    
         assertEquals( minor[0].matched, true )
     },
     sanitizeResources: false,
@@ -48,7 +48,7 @@ Deno.test({
         parser.debug = false
         parser.reset(titleStr)
         assert( parser.result.size >= 5 )
-        const tree = parser.getParseTree().filter( v => v.type !== 'Token')
+        const tree = parser.getParseTree().filter( v => v.type !== 'non-terminal')
         // console.log(JSON.stringify(tree, undefined, 2))
         assertEquals( tree.length, 3 )
     },
@@ -65,7 +65,7 @@ Deno.test({
         parser.debug = false
         parser.reset(titleStr)
         assert( parser.result.size >= 5 )
-        const tree = parser.getParseTree().filter( v => v.type !== 'Token')
+        const tree = parser.getParseTree().filter( v => v.type !== 'non-terminal')
         // console.log(JSON.stringify(tree, undefined, 2))
         // assertEquals( tree.length, 4 )
     },

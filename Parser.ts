@@ -27,6 +27,7 @@ import { matchRecFac } from './matchRecFac.ts'
 import { Validation } from './Validation.ts'
 import { HierarKey } from './imports.ts';
 
+
 // Parser state
 export class Parser<L extends string, T extends string, U = unknown> {
     // Debugging
@@ -159,33 +160,33 @@ export class Parser<L extends string, T extends string, U = unknown> {
                     })
                 return s.iMatcher  
             }
-            else {
+            else if ( ! this.isEOF() ) {
                 this.msg({
                     level: s.isc.level+1,
                     color: 'blue',
                     text:   `${ s.isc.roundTrips > 1 ? 'RETRY' : 'TRY'} Non-Terminal: ${token}(L${s.isc.level},R${s.isc.roundTrips}) at ${s.isc.goingInPos}`
                 })
-            }
-            
-            this.setMatchPos(s.mRec.tokenExt, s.isc.goingInPos, s.isc.level, 'parse()')
-            s.mRec.offsets.push(this.p.pos)
+                this.setMatchPos(s.mRec.tokenExt, s.isc.goingInPos, s.isc.level, 'parse()')
+                s.mRec.offsets.push(this.p.pos)
 
-            // Main loop 
-            this.parseExpect(s)  
-            if ( ! s.iMatcher.matched ) {
-                // Reset the match position
-                this.resetMatchPos(s.mRec.tokenExt, s.isc.goingInPos, s.isc.level)
-            }
-            else {
-                this.prevMatch = s.iMatcher.regexp!
-            }
-            // Call recursively on retry
-            if ( s.iMatcher.matchCnt > 0 && s.iMatcher.retry ) {
-               // Update parent state for recursive call
-                s.iMatcher.roundTrips = ++s.isc.roundTrips  
-                s.isc.goingInPos = this.p.pos
-                s.isc.parentId = s.iMatcher.id
-                this.parse( token, s, false )
+                // Main loop 
+                this.parseExpect(s)  
+                if ( ! s.iMatcher.matched ) {
+                    // Reset the match position
+                    this.resetMatchPos(s.mRec.tokenExt, s.isc.goingInPos, s.isc.level)
+                }
+                else {
+                    this.prevMatch = s.iMatcher.regexp!
+                }
+                // Call recursively on retry
+                if ( s.isc.token === 'chord' ) console.log(s.iMatcher)
+                if ( s.iMatcher.matchCnt > 0 && s.iMatcher.retry && s.isc.roundTrips < s.iMatcher.max ) {
+                // Update parent state for recursive call
+                    s.iMatcher.roundTrips = ++s.isc.roundTrips  
+                    s.isc.goingInPos = this.p.pos
+                    s.isc.parentId = s.iMatcher.id
+                    this.parse( token, s, false )
+                }
             }
         }
         catch(err) {
@@ -193,8 +194,6 @@ export class Parser<L extends string, T extends string, U = unknown> {
             throw err
         }
     }
-
-
     //
     // Set functions
     // 
@@ -228,37 +227,37 @@ export class Parser<L extends string, T extends string, U = unknown> {
     //
     // Checks
     //
-    chkBreakOn( breakOn : Breaks<T> ): boolean {
-        let   matched = false
+    chkBreakOn( breaks : Breaks<T> ): boolean {
+        let   breakMatched = false
         try {
-            if ( breakOn.breakOnPPGT.length > 0  ) {
-                for ( const exp of breakOn.breakOnPPGT ) {
+            if ( breaks.breakOnPPGT.length > 0  ) {
+                for ( const exp of breaks.breakOnPPGT ) {
                     // LookBack
                     if ( this.prevMatch.toString() === exp.toString() ){
                         this.msg({
-                            level: breakOn.level+1,
-                            color: 'red',
-                            text:   `BreakOn on prevMatch for '${breakOn.token}'` + ': ' + exp.toString()
+                            level: breaks.level+1,
+                            color: 'gray',
+                            text:   `BreakOn on prevMatch for '${breaks.token}'` + ': ' + exp.toString()
                         })
-                        matched = true
+                        breakMatched = true
                         break
                     }
                     else {
                         // lookAhead
-                        const res: XRegExp.ExecArray | null = XRegExp.exec(this.p.input, exp, breakOn.lastPos, 'sticky' )
+                        const res: XRegExp.ExecArray | null = XRegExp.exec(this.p.input, exp, breaks.lastPos, 'sticky' )
                         if ( res !== null ) {
                             this.msg({
-                                level: breakOn.level+1,
-                                color: 'red',
-                                text:   `BreakOn on lookAhead for '${breakOn.token}'` + ': ' + exp.toString()
+                                level: breaks.level+1,
+                                color: 'gray',
+                                text:   `BreakOn on lookAhead for '${breaks.token}'` + ': ' + exp.toString()
                             })
-                            matched = true
+                            breakMatched = true
                             break
                         }
                     }
                 }
-                if ( matched ) {
-                    this.prevBreakOn = { pos: breakOn.lastPos, token: breakOn.token + '' }
+                if ( breakMatched ) {
+                    this.prevBreakOn = { pos: breaks.lastPos, token: breaks.token + '' }
                 }
                 else {
                     this.prevBreakOn = { pos: -1, token: '__undef__' }
@@ -269,17 +268,50 @@ export class Parser<L extends string, T extends string, U = unknown> {
             console.error(err)
             throw err 
         }       
-        return matched
+        return breakMatched
     }
 
     
-    
+    chkStartOn( starts: Breaks<T> ): boolean {
+         const res = { active: false, ok: false, match: '' }
+         try {
+            if ( (starts.startOn ?? []).length > 0 ) {
+                for( const exp of starts.startOn! ) {
+                    res.active = true
+                    if ( this.prevMatch.toString() === exp.toString() ) {
+                        res.match = exp.toString()
+                        res.ok = true
+                        this.msg({
+                            level: starts.level+1,
+                            color: 'gray',
+                            text:  `StartOn look-behind matched for '${starts.token}'` + ': ' + exp.toString()
+                        })
+                        break
+                    }
+                }
+            }
+            else {
+                return true // No startOn conditions
+            }
+        }
+        catch (err) { 
+            console.error(err)
+            throw err 
+        }       
+         return res.active && res.ok
+    }
+
     tryNextExpectToken = (s: ParseFuncScope<L,T,U>): ValidationRT => {
         let tryNext: ValidationRT = { ok: true, err: '' }
         try {
             const iMatcher = s.matchers[s.matchers.length-1]
             const [min, max] = getMulti( iMatcher.multi )
-            
+
+            if ( s.iMatcher.roundtripFailed ) {
+                // The last roundTrip failed, but the match may still be ok
+                tryNext = { ok: false, err: 'The last roundtrip/retry failed' }
+            }
+
             if ( s.iMatcher.branchFailed() && min > 0 ) {
                 tryNext = { ok: false, err: 'Branch Failed' }
                 // iMatcher.failed = iMatcher.roundTrips == 1 ? true :false
@@ -322,7 +354,7 @@ export class Parser<L extends string, T extends string, U = unknown> {
                 const _ret = this.matchPositions.get(name)?.delete(offset)
                 if ( _ret ) this.msg( {
                     level: level,
-                    color: 'red',
+                    color: 'gray',
                     text: `Delete Match Position: ${offset} for "${name}" -> ${_ret}`
                 })
             }
@@ -363,7 +395,7 @@ export class Parser<L extends string, T extends string, U = unknown> {
                 const id = matchRec ? matchRec.id! : iMatcher.id!
                 assert( iMatcher.offsets.length > 0, `resetFailedBranch() got an empty offsets array`)
 
-                if ( iMatcher.keyExt === 'arrElement.arrAssign' ) {
+                if ( iMatcher.key === 'barEntry' ) {
                     this.debugHook = 1
                 }
                 this.msg({
@@ -449,7 +481,7 @@ export class Parser<L extends string, T extends string, U = unknown> {
             if ( res !== null ) {
                 this.msg({
                     level: s.isc.level+2,
-                    color: 'green',
+                    color: 'red',
                     text: `MATCHED: ${iMatcher.key} at pos: ${this.p.pos} to ${iMatcher.regexp!.lastIndex}, matched: "${this.p.input.substring(this.p.pos,iMatcher.regexp!.lastIndex)}"`
                     })  
 
@@ -477,7 +509,7 @@ export class Parser<L extends string, T extends string, U = unknown> {
                 matchRec!.matched = iMatcher.matched = true
                 matchRec!.value = res[2]
                 matchRec!.text  = res[0] 
-                matchRec!.type       = iMatcher.key 
+                matchRec!.type       = 'terminal' 
                 matchRec!.matchCnt   = ++iMatcher.matchCnt     
                 matchRec!.parentId   = iMatcher.parentId ?? '__undef__'
             
@@ -491,8 +523,11 @@ export class Parser<L extends string, T extends string, U = unknown> {
                 // if exists, run the Lexer and parser callback function 
                 if ( iMatcher.cbLex !== undefined ) iMatcher.cbLex(matchRec as MatchRecordExt<T>, this.userScope as U)
                 if ( iMatcher.cb !== undefined ) iMatcher.cb(matchRec as MatchRecordExt<T>, this.userScope as U)
-                this.prevMatch = iMatcher.regexp!
+                if ( ! iMatcher.ignore ) this.prevMatch = iMatcher.regexp!
                 ret = { ok: true, err: '' }
+            }
+            else {
+                if ( iMatcher.min > 0 && ! iMatcher.logicApplies ) ret = { ok: false,  err: 'Failed mandatory match'}
             }
             return ret
         } catch(err) { 
@@ -527,14 +562,24 @@ export class Parser<L extends string, T extends string, U = unknown> {
 
             // Main Match loop for terminal symbols
             let matchCnt = 0
+            let wsReachedEOF = false
             do {
-                // match = { foundToken: false, foundSubToken: false, id: undefined, doBreak: false , ignore: false};
                 if ( ! this.isWS(s) ) {
                     // Remove leading white space
                     if ( s.eMap.rootKey !== this.always) {
+                        const wsPos = this.p.pos
                         this.removeWS(s)
+                        if ( this.p.pos > wsPos && this.isEOF() ) {
+                            this.msg({
+                                level: s.isc.level+1,
+                                color: 'cyan',
+                                text: `Removed WS and reached EOF: ${this.p.pos}`
+                            })
+                            wsReachedEOF = true
+                            break
+                        }
                     }
-                    if ( matchCnt > 0 ) {    
+                    if ( matchCnt > 0 && matchCnt < iMatcher.max ) {    
                         this.msg({     
                             level: s.isc.level+2,       
                             color: 'cyan',  
@@ -550,8 +595,11 @@ export class Parser<L extends string, T extends string, U = unknown> {
                         idx: s.iMatcher.idx,   
                         lastPos: this.p.pos,
                         token: iMatcher.key as T,
-                        breakOnPPGT: iMatcher.breaks ?? []
-                    }) ) break 
+                        breakOnPPGT: iMatcher.breaks ?? [],
+                        startOn: iMatcher.starts ?? []
+                    }) ) {
+                        break
+                    }
                 }
  
                 //  Do the actual match, taking the cardinality into account
@@ -574,13 +622,20 @@ export class Parser<L extends string, T extends string, U = unknown> {
                         if ( this.validation.matched(s, this.p.pos) && this.rules.PRMap.has(iMatcher.key as T) ) {
                             // If the matched Lexer object has a parser LHS non-terminal entry of its own of the same name, then call it
                             this.msg({
-                                level: s.isc.level+1,
+                                level: s.isc.level+2,
                                 color: 'cyan',
                                 text: `Terminal symbol has own matcher, so call: ${iMatcher.key}`
                             })
                             const hasIMatcher = false
                             this.parse( iMatcher.key as T , s, hasIMatcher )
                         }
+                    }
+                    else {
+                        this.msg({
+                            level: s.isc.level+2,
+                            color: 'bgRed',
+                            text: `Match failed for: ${iMatcher.keyExt}`
+                        })
                     }
                 }        
             }
@@ -597,11 +652,11 @@ export class Parser<L extends string, T extends string, U = unknown> {
                 this.msg({
                     level: s.isc.level+1,
                     color: 'cyan',
-                    text: `TRY_END: ${iMatcher.key}(L${s.isc.level},R${s.isc.roundTrips}), matchCnt: ${matchRec.matchCnt}`
+                    text: `TRY END: ${iMatcher.key}(L${s.isc.level},R${s.isc.roundTrips}), matchCnt: ${matchRec.matchCnt}`
                 })
             }
             // Check if the match count is within the cardinality constraints
-            if ( ! this.validation.matchInRange( iMatcher ).ok ) {
+            if ( ! wsReachedEOF && ! this.validation.matchInRange( iMatcher ).ok ) {
                 this.resetFailedIMatcher(iMatcher, matchRec, s.iMatcher.errors.at(-1), s.isc.level, 'matchTerminal()')
             }
             else {
@@ -623,6 +678,9 @@ export class Parser<L extends string, T extends string, U = unknown> {
             let eMapCnt   = 0
             let tryNext = { ok: false, err: '' }
             let anyMatch = false
+            let firstLogicGroup = true
+            let optimisticChk = false
+            let currKey = '@@@@'
             s.eMap.expect.every( ( _iMatcher: InternMatcher<T,U>, idx: number ) => { 
                 eMapCnt++
                 if ( this.isEOF() ) return false
@@ -634,8 +692,30 @@ export class Parser<L extends string, T extends string, U = unknown> {
                 s.matchers.push(iMatcherRaw)
 
                 const iMatcher = iMatcherFac('parseExpect', s, idx, this.p )
-  
-                // if ( this.isEOF() ) return tryNext.ok
+
+                // Check for startOn on idx 0 and subsequent idx > 0 that belong to the same initial logic group
+                firstLogicGroup = firstLogicGroup  || ( idx === 0 && iMatcher.logicApplies ) 
+
+                if ( idx === 0 || firstLogicGroup ) {
+                    if ( ! this.chkStartOn( {
+                        level: s.isc.level,
+                        roundTrips: s.isc.roundTrips,
+                        idx: idx,
+                        lastPos: this.p.pos,
+                        token: iMatcher.key as T,
+                        breakOnPPGT: iMatcher.breaks ?? [],
+                        startOn : iMatcher.starts ?? []
+                    }) ) {
+                        this.msg({
+                            level: s.isc.level+1,
+                            color: 'gray',
+                            text: `SKIP Due to missed StartOn condition for ${iMatcher.keyExt}(L${s.isc.level},R${s.isc.roundTrips})`
+                        }) 
+                        if ( idx === 0 && ! iMatcher.logicApplies )  return false
+                        if ( firstLogicGroup && iMatcher.logicLast ) return false
+                    }
+                }
+
                 // Handle TERMINAL SYMBOLS
                 if ( iMatcher.regexp ) {
                     if ( this.chkBreakOn( {
@@ -644,10 +724,28 @@ export class Parser<L extends string, T extends string, U = unknown> {
                         idx: s.iMatcher.idx,   
                         lastPos: this.p.pos,
                         token: iMatcher.key as T,
-                        breakOnPPGT: iMatcher.breaks ?? []
+                        breakOnPPGT: iMatcher.breaks ?? [],
+                        startOn : iMatcher.starts ?? []
                         }) 
-                    ) return false
-                    this.matchTerminal( s )
+                    ) {
+                        if ( iMatcher.logicApplies ) {
+                            optimisticChk = true
+                            this.matchTerminal( s )
+                            return true
+                        }
+                        else {
+                            this.msg({
+                                level: s.isc.level+1,
+                                color: 'gray',
+                                text: `SKIP Due to BreakOn condition for ${iMatcher.keyExt}(L${s.isc.level},R${s.isc.roundTrips})`
+                            }) 
+                            return false
+                        }
+                    }
+                    else {
+                        this.matchTerminal( s )
+                    }
+
                     anyMatch = (anyMatch || iMatcher.matchCnt > 0 )
                 }
                 else  {
@@ -669,49 +767,55 @@ export class Parser<L extends string, T extends string, U = unknown> {
                         text: `TRY NEXT after ${iMatcher.keyExt}(L${s.isc.level},R${s.isc.roundTrips}): ${tryNext.ok}`
                     })  
                 }
+                currKey = iMatcher.key
                 return tryNext.ok
             }); // End of expect.every()
 
             // Validate all iMachers in the expect array 
-            const optimistic = this.isEOF()
+            const optimistic = this.isEOF() || optimisticChk
+            
             // The whole loop has been completed successfully or validates according to the parser rules
-            // const validBranch = ( ( tryNext.ok || optimistic ) && eMapCnt === eMapLen )  || this.validation.validExpect( s, optimistic )
+            if (s.isc.token === 'barEntry') {
+                this.debugHook = 1;
+            }
             const validBranch = this.validation.validExpect( s, optimistic )
 
             if ( validBranch ) {
                 // We have validated the expect array and we are ok
                 // Any failed terminals or sub-branch non-terminals within the expect array 
-                // are not mandatory on this level, so they can be ignored
-                if ( s.isc.token !== this.always ) {
+                // are not mandatory at this level, so they can be ignored
+                if ( s.isc.token !== this.always && s.iMatcher.matchCnt > 0 ) {
                     this.msg({ 
                         level: s.isc.level+1,
-                        color: 'green',
+                        color: 'red',
                         text: `BRANCH MATCHED for ${s.isc.token} (L${s.isc.level},R${s.isc.roundTrips})`
                     }) 
                 }
-                if ( s.isc.token === 'rhsAssign' ) {
-                    this.debugHook = 1
-                }
                 s.iMatcher.status = [ 'matched' ]
-                s.iMatcher.matched = true
+                s.iMatcher.matched = s.mRec.matched = true
                 if ( anyMatch ) {
                     s.iMatcher.matchCnt += 1
-                    s.iMatcher.retry = true
+                    s.mRec.matchCnt = s.iMatcher.matchCnt
+                    s.iMatcher.retry = s.iMatcher.matchCnt < s.iMatcher.max
                 }
             }
             else {
-                if ( s.isc.token !== this.always ) { 
-                    this.msg({
-                        level: s.isc.level+1,
-                        color: 'yellow',
-                        text: `BRANCH FAIL for ${s.isc.token} (L${s.isc.level},R${s.isc.roundTrips})`
-                    })
+                const skipBacktrack = this.isEOF() && ! anyMatch  
+                if ( ! skipBacktrack) { // we only matched some spaces
+                    if ( s.isc.token !== this.always ) { 
+                        this.msg({
+                            level: s.isc.level+1,
+                            color: 'yellow',
+                            text: `BRANCH FAIL for ${s.isc.token} (L${s.isc.level},R${s.isc.roundTrips})`
+                        })
+                    }
+                    s.iMatcher.retry = false
+                    // const resetPos = s.mRec.newPos > s.mRec.offset ? s.mRec.newPos : s.mRec.offset
+                    // this.resetFailedBranch(s, undefined, s.matchers.at(-1)?.offsets ?? [], s.iMatcher.errors.at(-1), s.isc.level, 'parseExpect()')
+
+                    if ( ! s.iMatcher.logicApplies ) this.resetFailedBranch(s, s.iMatcher.errors.at(-1), s.isc.level, 'parseExpect()')
                 }
-                s.iMatcher.retry = false
-                // const resetPos = s.mRec.newPos > s.mRec.offset ? s.mRec.newPos : s.mRec.offset
-                // this.resetFailedBranch(s, undefined, s.matchers.at(-1)?.offsets ?? [], s.iMatcher.errors.at(-1), s.isc.level, 'parseExpect()')
-                this.resetFailedBranch(s, s.iMatcher.errors.at(-1), s.isc.level, 'parseExpect()')
-                if ( s.iMatcher.roundTrips === 1 ) s.iMatcher.status = [ 'branchFailed' ]
+                if ( s.iMatcher.roundTrips === s.iMatcher.min ) s.iMatcher.status = [ 'branchFailed' ]
             }
         }
         catch (err) {
@@ -731,8 +835,12 @@ export class Parser<L extends string, T extends string, U = unknown> {
         return 0;
       }
 
-    getParseTree( excludeAlways = false ): MatchRecord<T>[] {
-        const res: MatchRecord<T>[] = []
+    getFullParseTree() { 
+        return this.getParseTree(false, true)
+    }
+
+    getParseTree( excludeAlways = false, fullTree = false ): MatchRecordExt<T>[] {
+        const res: MatchRecordExt<T>[] = []
         const unMatched = new Map<string, boolean>()
         try {
             if ( this.topNode ) {
@@ -742,8 +850,8 @@ export class Parser<L extends string, T extends string, U = unknown> {
                 const tree = _.sortBy(_.toArray(this.result), ['id'])
                 for ( const [_id, e] of tree ) {
                     // let newLevel = Math.abs( e.level - prevLevel )
-                    if ( e.token === this.always && excludeAlways ) e.ignore = true
-                    if ( e.matched  && ! e.ignore ) {
+                    if ( e.token === this.always && excludeAlways && ! fullTree ) e.ignore = true
+                    if ( ! fullTree && ( e.matched  && ! e.ignore ) ) {
                         const  node = _.clone(e)
                         let  level = node.level
                         if ( level === 0 ) {

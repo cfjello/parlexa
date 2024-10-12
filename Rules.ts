@@ -1,6 +1,7 @@
 // @deno-types='https://deno.land/x/xregexp/types/index.d.ts'
 import XRegExp      from  'https://deno.land/x/xregexp/src/index.js'
-import { ulid }     from "https://raw.githubusercontent.com/ulid/javascript/master/dist/index.js"
+// import { ulid }     from "https://raw.githubusercontent.com/ulid/javascript/master/dist/index.js"
+import ulid from "npm:ulid"
 import { assert }   from "https://deno.land/std/assert/mod.ts";
 import { _ }        from './lodash.ts';
 import * as Colors  from "https://deno.land/std/fmt/colors.ts" 
@@ -85,12 +86,13 @@ export class Rules<L extends string, T extends string, U> {
         Object.keys( PR ).forEach( key => {
             const pr = (PR as IIndexable<Expect<T,U>>)[key] 
             const expect:  InternMatcher<T,U>[] = []
+            /*
             this.msg ({
                 level: 0,
                 text: `Mapping key: ${key} with type: ${typeof key}`,
                 color: 'green'
             })
-
+            */
             pr.expect.forEach( ( e: ExpectEntry<T,U>) => {
                 if ( typeof e === 'string') {
                     expect.push( this.resolveString(e as string) )
@@ -124,6 +126,10 @@ export class Rules<L extends string, T extends string, U> {
             const breakOnStr = [] as string[] 
             (breakOn ?? []).forEach( ent  => breakOnStr.push(ent.toString() as string) )
 
+            const startOn = (pr.startOn ?? []).filter( ent => ent instanceof RegExp ? ent : (ent as Matcher<T,U>).match as RegExp)
+            const startOnStr = [] as string[]
+            (startOn ?? []).forEach( ent  => startOnStr.push(ent.toString() as string) )    
+
             const [min, max] = getMulti( pr.multi ?? '0:m'  )
 
             this.PRMap.set(
@@ -138,6 +144,7 @@ export class Rules<L extends string, T extends string, U> {
                     // startOn:    startOn as Array<RegExp>,
                     // startOnStr: startOnStr,
                     breaks:    breakOn as Array<RegExp>,
+                    starts:    startOn as Array<RegExp>,
                     breakOnStr: breakOnStr,
                     cb:         pr.cb ?? undefined
                 } satisfies  ExpectMap<T,U>
@@ -145,8 +152,8 @@ export class Rules<L extends string, T extends string, U> {
         })
     }
     catch (err) { 
-        console.error(err.message) 
-        console.error(err.stack)
+        console.error((err as Error).message) 
+        console.error((err as Error).stack)
         }
     }
 
@@ -201,7 +208,6 @@ export class Rules<L extends string, T extends string, U> {
         return m
     }
 
-    // Map builder help functionstokenEx
     resolveString( 
         key: string,
         multiDefault: Cardinality = '0:m',
@@ -210,12 +216,13 @@ export class Rules<L extends string, T extends string, U> {
         return { 
             token:      key as T,
             key:        key, 
-            id:         ulid(),
+            id:         ulid.ulid(),
             multi:      multiDefault,
             breaks:     [] as Array<RegExp>,
+            starts:     [] as Array<RegExp>,
             logic:      'none',
             ignore:     false, 
-            type:       'Token',
+            type:       'non-terminal',
             regexp:     undefined,
             cb:         undefined,
             cbLex:      undefined,
@@ -244,12 +251,13 @@ export class Rules<L extends string, T extends string, U> {
         return { 
             token:  key as T,
             key:    key, 
-            id:     ulid(),
+            id:     ulid.ulid(),
             multi:  e.multi ?? multiDefault,
             breaks: [] as Array<RegExp>,
+            starts: [] as Array<RegExp>,
             logic:  e.logic ?? 'none',
             ignore: false, 
-            type:   'Matcher',
+            type:   'terminal',
             regexp: e.match as RegExp,
             // lRRef:  e as unknown as Matcher<T,U>,
             cb:     e.cb ?? undefined,
@@ -280,15 +288,16 @@ export class Rules<L extends string, T extends string, U> {
         return { 
             token:      key as T,
             key:        key, 
-            id:         ulid(),
+            id:         ulid.ulid(),
             multi:      multiDefault,
             breaks:     [] as Array<RegExp>,
+            starts:     [] as Array<RegExp>,
             logic:      'none',
             logicGroup: -1,
             logicIdx:   -1,
             logicLast:  false,
             ignore:     false, 
-            type:       'RegExp',
+            type:       'terminal',
             regexp:     matcher.match as RegExp,
             // lRRef:  e as unknown as RegExp,
             cb:         undefined,
@@ -311,10 +320,11 @@ export class Rules<L extends string, T extends string, U> {
         const res: InternMatcher<T,U> = { 
             token:      '__undef__' as T,
             key:        '__undef__', 
-            id:         ulid(),
+            id:         ulid.ulid(),
             idx:        -1,
             multi:      multiDefault,
             breaks:     [] as Array<RegExp>,
+            starts:     [] as Array<RegExp>,
             roundTrips: 0,
             tries:      0,
             matchCnt:   0, 
@@ -340,7 +350,7 @@ export class Rules<L extends string, T extends string, U> {
         // Resolve
         for ( const v of e ) {
             if ( typeof v === 'function' ) {
-                res.type = 'function'
+                // res.type = 'function'
                 res.cb   = v as Callback<T,U>
             }
             else if ( typeof v === 'string' ) {
@@ -357,31 +367,32 @@ export class Rules<L extends string, T extends string, U> {
                 }
                 else { // assume T token 
                     // res.type = 'PR Token'
-                    res.type = 'Token'
+                    res.type = 'non-terminal'
                     res.token = v as T
                     res.key = v
                 }
             }
             // deno-lint-ignore no-explicit-any
             else if ( (v as any) instanceof RegExp ) {
-                res.type    = 'RegExp'
+                res.type    = 'terminal'
                 res.token   = this.LRReverseMap.get(v as RegExp)!
                 res.key     = res.token
                 res.regexp  = this.LRMap.get(res.token)!.match as RegExp
             }
             else { // Assume Matcher
-                res.type    = 'Matcher'
+                 'Matcher'
                 // res.token   = this.LRReverseMap.get(v as unknown as Matcher<T,U>)!
                 res.token   = this.LRReverseMap.get((v as Matcher<T,U>).match) as T
                 const m     = this.LRMap.get(res.token)
                 res.key     = res.token
                 res.regexp  = m!.match
+                res.type    = m!.match !== undefined ? 'terminal' : 'non-terminal'
                 res.cbLex   = m!.cb
             }
         }
         assert( res.key !== undefined , `Key is missing in ParserRules entry ${JSON.stringify(e)}`)
         assert( res.key !== '__undef__' , `Key is has not been set in ParserRules entry ${JSON.stringify(e)}`)
-        assert( res.type === 'Token' || res.regexp !== undefined , `RegExp is missing in ParserRules entry ${JSON.stringify(e)}`)
+        assert( res.type === 'non-terminal' || res.regexp !== undefined , `RegExp is missing in ParserRules entry ${JSON.stringify(e)}`)
         return res
     }
 }

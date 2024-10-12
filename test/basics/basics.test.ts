@@ -27,7 +27,7 @@ Deno.test({
         parser.reset(input_01)
   
         const tree = parser.getParseTree()
-        const matcher_01 = tree.filter( v => v.type === 'INT' )
+        const matcher_01 = tree.filter( v => v.token === 'INT' )
         assert( matcher_01.length === 1  )
     },
     sanitizeResources: false,
@@ -45,11 +45,11 @@ Deno.test({
   
         assert( parser.result.size > 15 )
         const tree = parser.getParseTree()
-        const matcher = tree.filter( v => v.type === 'IDENT' )
+        const matcher = tree.filter( v => v.token === 'IDENT' )
   
         assert( matcher.length === 1  )
         assertEquals( matcher[0].value, 'øæå')
-        const matcher2 = tree.filter( v => v.type === 'STR' )
+        const matcher2 = tree.filter( v => v.token === 'STR' )
         assert( matcher2.length === 1  )
         assert( matcher2[0].value, 'I am a string')
     },
@@ -90,7 +90,7 @@ Deno.test({
         parser.reset(input)
         assert( parser.result.size > 70)
         const tree = parser.getParseTree()
-        const matcher = tree.filter( v => v.type === 'INT' )
+        const matcher = tree.filter( v => v.token === 'INT' )
         assertEquals( matcher.length, 4 )
         assertEquals( matcher[0].value, '1234')
         assertEquals( matcher[1].value, '5678')
@@ -111,7 +111,7 @@ Deno.test({
         parser.reset(input)
         const tree = parser.getParseTree()
         // deno-lint-ignore no-explicit-any
-        const matcher : any[] = tree.filter( v => v.type === 'INT' )
+        const matcher : any[] = tree.filter( v => v.token === 'INT' )
         // console.debug(`05: ${JSON.stringify(matcher,undefined,2)}`)
         assertEquals( matcher[0].intAssignCB,'INT Callback was here')
     },
@@ -149,7 +149,7 @@ Deno.test({
         parser.debug = false
         // assert( parser.result.size > 70)
         let tree = parser.getParseTree()
-        let matcher = tree.filter( v => v.type === 'INT' )
+        let matcher = tree.filter( v => v.token === 'INT' )
         assertEquals( matcher.length, 4 )
         assertEquals( matcher[0].value, '1234')
         assertEquals( matcher[1].value, '5678')
@@ -162,7 +162,7 @@ Deno.test({
         parser.reset(input)
         assert( parser.result.size >= 18 )
         tree = parser.getParseTree()
-        matcher = tree.filter( v => v.type === 'INT' )
+        matcher = tree.filter( v => v.token === 'INT' )
         // console.log(`${JSON.stringify(matcher)}`)
         assertEquals( matcher[0].value, '12345')
     },
@@ -182,7 +182,7 @@ Deno.test({
         const tree = parser.getParseTree(true)
         // console.debug(`${JSON.stringify(tree,undefined,2)}`)
         // deno-lint-ignore no-explicit-any
-        const matcher : any[] = tree.filter( v => v.type === 'NL' )
+        const matcher : any[] = tree.filter( v => v.token === 'NL' )
        
         assertEquals( matcher.length, 2)
     },
@@ -201,7 +201,7 @@ Deno.test({
         parser.reset(input)
         const tree = parser.getParseTree()
         // deno-lint-ignore no-explicit-any
-        const matcher : any[] = tree.filter( v => v.type === 'DUMMY' )
+        const matcher : any[] = tree.filter( v => v.token === 'DUMMY' )
         assertEquals( matcher.length, 1)
     },
     sanitizeResources: false,
@@ -220,7 +220,7 @@ Deno.test({
         parser.reset(input)
         const tree = parser.getParseTree()
         // deno-lint-ignore no-explicit-any
-        const matcher : any[] = tree.filter( v => v.type === 'DUMMY' )
+        const matcher : any[] = tree.filter( v => v.token === 'DUMMY' )
         assertEquals( matcher.length, 1)
     },
     sanitizeResources: false,
@@ -238,7 +238,7 @@ Deno.test({
         parser.reset(input)
         const tree = parser.getParseTree()
         // deno-lint-ignore no-explicit-any
-        const matcher : any[] = tree.filter( v => v.type === 'DUMMY' )
+        const matcher : any[] = tree.filter( v => v.token === 'DUMMY' )
         assertEquals( matcher.length, 1)
     },
     sanitizeResources: false,

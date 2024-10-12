@@ -19,14 +19,17 @@ export const iMatcherFac = <L extends string,T extends string,U>(
                 idx = idx < 0 ? s.matchers.length -1 : _idx
                 iMatcher = s.matchers[idx]
                 iMatcher.parentId = iMatcher.parentId ?? s.iMatcher.id
+                iMatcher.type = iMatcher.regexp ? 'terminal' : 'non-terminal'
             }
             else if ( caller === 'parseNT' ) {
                 // Called from ParseNT
                 iMatcher.regexp = undefined
+                iMatcher.type = 'non-terminal'
                 iMatcher.parentId = s.isc.parentId
             }
             else { // reset
                 iMatcher.regexp = undefined
+                iMatcher.type = 'non-terminal'
                 iMatcher.parentId = '__root__'
             }
 
@@ -50,7 +53,8 @@ export const iMatcherFac = <L extends string,T extends string,U>(
                 iMatcher.keyExt     = iMatcher.key
             }
            
-            iMatcher.roundTrips = ! iMatcher.roundTrips || iMatcher.roundTrips < 1 ? s.isc.roundTrips: iMatcher.roundTrips   
+            iMatcher.roundTrips = s.isc.roundTrips   
+            iMatcher.roundtripFailed = false
             if ( caller === 'parseExpect' ) {
                 s.mRec.children.push(iMatcher.id)
             }
@@ -59,6 +63,9 @@ export const iMatcherFac = <L extends string,T extends string,U>(
             iMatcher.matchCnt       = 0 
             iMatcher.tries          = 0
             iMatcher.breaks         = s.breaks
+            iMatcher.breakIdx       = -1
+            iMatcher.startIdx       = -1
+            iMatcher.starts         = s.starts
             iMatcher.ignore         = iMatcher.ignore ?? false
             // Logic Part
             iMatcher.logicLast      = false
