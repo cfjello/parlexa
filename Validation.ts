@@ -1,7 +1,7 @@
 //
 // Progress and validation functions
 //
-import { Debug } from "./InfoLogger.ts";
+import { Debug } from "./Debug.ts";
 import { assert } from "./imports.ts";
 import { DebugLogFunc, InternMatcher, InternMatcherExt, ValidationRT } from "./types.ts";
 import { ParseFuncScope } from "./types.ts";
@@ -92,6 +92,7 @@ export class  Validation<L,T,U> {
                             ret = { ok: false, err: failBranchMsg }
                         }
                         else {
+                            // logic is matched
                             this.msg( {
                                 level: s.isc.level+1,
                                 color: 'bgBrightYellow',
@@ -99,9 +100,9 @@ export class  Validation<L,T,U> {
                                 }   
                             ) 
                         }
-                    }
-                    if ( ret.ok && iMatcher.logicApplies && iMatcher.matchCnt < iMatcher.min ) {
-                        ret = { ok: false, err: `Match count failed minimum count for ${iMatcher.keyExt}` }
+                        // if ( ret.ok && iMatcher.logicApplies && iMatcher.matchCnt < iMatcher.min ) {
+                        //     ret = { ok: false, err: `Match count failed minimum count for ${iMatcher.keyExt}` }
+                        // }
                     }
                 }
             }

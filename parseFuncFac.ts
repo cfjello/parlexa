@@ -4,13 +4,13 @@ import { Sealed } from "./types.ts";
 import { ExpectMap } from "./types.ts";
 import { ParseArgs } from "./types.ts";
 import { ParseFuncScope } from "./types.ts";
-import { matchRecFac } from "./matchRecFac.ts";
+import { matchRecInit } from "./matchRecFac.ts";
 import { MatchRecord } from "./types.ts";
 import { Logic } from "./Logic.ts";
 import { InternMatcherSealed } from "./types.ts";
 import { InternMatcherExt } from "./types.ts";
 
-export const parseFuncFac = <L extends string,T extends string,U>( 
+export const parseFuncInit = <L extends string,T extends string,U>( 
     token:  T,
     p:      ParserSharedScope<L,T,U>, 
     parent: ParseFuncScope<L,T,U> | undefined,
@@ -23,7 +23,7 @@ export const parseFuncFac = <L extends string,T extends string,U>(
                 parentId:   parent?.iMatcher.id ?? '__root__',
                 parentIdx:  parent ? parent.matchers.length - 1 : -1,
                 level:      ( parent?.isc.level ?? 0 ) + 1, 
-                roundTrips: ( parent?.isc.roundTrips ?? 0 ) + 1,
+                roundTrips: 1,
                 goingInPos: p.pos,
                 breaks:     parent?.isc.breaks.slice() ?? []
             } satisfies ParseArgs<T>
@@ -59,7 +59,7 @@ export const parseInit = <L extends string,T extends string ,U>(
                 s.iMatcher = iMatcherFac( parent ? 'parseNT' : 'reset', s as Sealed<ParseFuncScope<L,T,U>, 'eMap' | 'isc'>, -1, p)
             }
             // Add Match Record to the state
-            s.mRec = matchRecFac(
+            s.mRec = matchRecInit(
                         s as Sealed<ParseFuncScope<L,T,U>, 'eMap' | 'isc' | 'iMatcher'> , 
                         p, 
                         s.iMatcher as Sealed<InternMatcherExt<T,U>, 'ignore'| 'keyExt' | 'breaks'>

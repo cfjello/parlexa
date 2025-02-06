@@ -197,7 +197,7 @@ Deno.test({
         const input = `let backTrackDummy  = @_DUMMY_@`
         // deno-lint-ignore no-explicit-any
         const parser = new Parser( LR, PR, 'reset', {} as any, false)
-        // parser.debug = true
+        parser.debug = false
         parser.reset(input)
         const tree = parser.getParseTree()
         // deno-lint-ignore no-explicit-any
@@ -208,7 +208,6 @@ Deno.test({
     sanitizeOps: false
 })
 
-/*
 Deno.test({
     name: '10 - Parser backtracks with more complex input', 
     fn: () => {  
@@ -226,7 +225,6 @@ Deno.test({
     sanitizeResources: false,
     sanitizeOps: false
 })
-
 
 /*
 Deno.test({

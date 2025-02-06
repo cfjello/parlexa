@@ -1,7 +1,7 @@
 import { assert, assertEquals, assertExists  } from "https://deno.land/std/assert/mod.ts"
-import { Debug } from "../../InfoLogger.ts"
+import { Debug } from "../../Debug.ts"
 import { DebugArgs, DebugLogFunc } from "../../types.ts";
-import { Colors } from "../../imports.ts";
+import * as Colors from "https://deno.land/std/fmt/colors.ts" 
 
 Deno.test({
     name: '01 - Debug can take a Callback - not a real test, just look at the output', 

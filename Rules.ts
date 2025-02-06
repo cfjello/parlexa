@@ -1,11 +1,8 @@
 // @deno-types='https://deno.land/x/xregexp/types/index.d.ts'
-import XRegExp      from  'https://deno.land/x/xregexp/src/index.js'
-// import { ulid }     from "https://raw.githubusercontent.com/ulid/javascript/master/dist/index.js"
-import ulid from "npm:ulid"
-import { assert }   from "https://deno.land/std/assert/mod.ts";
-import { _ }        from './lodash.ts';
-import * as Colors  from "https://deno.land/std/fmt/colors.ts" 
+import XRegExp from  'https://deno.land/x/xregexp@v1.0.1/src/index.js'
+import { _ , ulid, assert} from './imports.ts';
 import { getMulti } from "./util.ts";
+import * as Colors from "https://deno.land/std/fmt/colors.ts" 
 
 import { 
     Cardinality, 
@@ -22,7 +19,7 @@ import {
     LexerRules
 } from "./types.ts"
 import { Logic } from "./Logic.ts";
-import { Debug } from './InfoLogger.ts';
+import { Debug } from './Debug.ts';
 
 export interface IIndexable<T> { [key: string]: T }
 
@@ -114,7 +111,7 @@ export class Rules<L extends string, T extends string, U> {
                     assert ( e !== undefined, `PR_03 , Match object is undefined for: ${key}`) 
                     const regKey = this.LRReverseMap.has(e as Matcher<T,U>) ? this.LRReverseMap.get(e as Matcher<T,U> ) : this.LRReverseMap.get(e.match as RegExp ) 
                     assert ( regKey !== undefined, `PR_03 , Reverse Lookup returned undefined for: ${JSON.stringify(e, undefined, 2)}`) 
-                    const m =  this.resolveMatcher(regKey, e as Matcher<T,U> )
+                    const m =  this.resolveMatcher(regKey!, e as Matcher<T,U> )
                     expect.push( this.resolveLogic(key, m) )
                 }    
                 else {
@@ -216,7 +213,7 @@ export class Rules<L extends string, T extends string, U> {
         return { 
             token:      key as T,
             key:        key, 
-            id:         ulid.ulid(),
+            id:         ulid(),
             multi:      multiDefault,
             breaks:     [] as Array<RegExp>,
             starts:     [] as Array<RegExp>,
@@ -251,7 +248,7 @@ export class Rules<L extends string, T extends string, U> {
         return { 
             token:  key as T,
             key:    key, 
-            id:     ulid.ulid(),
+            id:     ulid(),
             multi:  e.multi ?? multiDefault,
             breaks: [] as Array<RegExp>,
             starts: [] as Array<RegExp>,
@@ -288,7 +285,7 @@ export class Rules<L extends string, T extends string, U> {
         return { 
             token:      key as T,
             key:        key, 
-            id:         ulid.ulid(),
+            id:         ulid(),
             multi:      multiDefault,
             breaks:     [] as Array<RegExp>,
             starts:     [] as Array<RegExp>,
@@ -320,7 +317,7 @@ export class Rules<L extends string, T extends string, U> {
         const res: InternMatcher<T,U> = { 
             token:      '__undef__' as T,
             key:        '__undef__', 
-            id:         ulid.ulid(),
+            id:         ulid(),
             idx:        -1,
             multi:      multiDefault,
             breaks:     [] as Array<RegExp>,

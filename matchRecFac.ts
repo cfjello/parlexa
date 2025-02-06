@@ -3,7 +3,7 @@ import { ParserSharedScope } from "./parserSharedFac.ts";
 import { InternMatcherSealed } from "./types.ts";
 import { MatchRecord, ParseFuncScope } from "./types.ts";
 
-export const matchRecFac = <L extends string,T extends string, U>( 
+export const matchRecInit = <L extends string,T extends string, U>( 
     s: ParseFuncScope<L,T,U>, 
     p: ParserSharedScope<L,T,U>,
     _iMatcher: InternMatcherSealed<T,U> | undefined ) => {
