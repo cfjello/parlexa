@@ -17,11 +17,12 @@ export const parserSharedFac = <L extends string,T extends string,U>( pRef: Pars
         // input with positione and Line and column numbers for error reporting and matching
         input:      '',
         pos:        0,
+        lastPosMatched: false,
         line:       1,
         col:        1, 
         bol:        0, 
-        // Memory for previous tokens
-        firstSymbol: true,
+        // Memory for first symbol token
+        firstSymbol: '',
     }
 }
 

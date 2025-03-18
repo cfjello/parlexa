@@ -19,7 +19,7 @@ export const matchRecInit = <L extends string,T extends string, U>(
               text:     '',
               ws:       false,
               ignore:   iMatcher.ignore,
-              offsets:  [s.isc.goingInPos], 
+              offsets:  iMatcher.offsets, 
               ofLen:    p.input.length,
               line:     p.line,
               col:      p.col,

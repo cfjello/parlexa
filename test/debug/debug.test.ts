@@ -7,16 +7,18 @@ Deno.test({
     name: '01 - Debug can take a Callback - not a real test, just look at the output', 
     fn: () => {  
         const input_02 = "This is a green string"
-        const debug = new Debug(
+        const debug = new Debug<string,string>(
             true, 
             'none' , 
-            ( args: DebugArgs) =>  { 
+            ( args: DebugArgs<string,string>) =>  { 
                 const str = args.text + ' from a callback'
                 console.debug( Colors.green(str) ) 
                 return str
             }  
         )
         debug.msg({
+            oper: 'TEST',
+            iMatcher: undefined,
             level: 0, 
             color: 'none', 
             text: input_02
@@ -24,6 +26,8 @@ Deno.test({
 
         debug.setCallback( undefined )
         debug.msg({
+            oper: 'TEST',
+            iMatcher: undefined,
             level: 0, 
             color: 'red', 
             text: "This is a red test string after reset of the callback"

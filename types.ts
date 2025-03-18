@@ -11,14 +11,14 @@ export const colorNames = [ 'none', 'red', 'green', 'yellow', 'blue', 'magenta',
     'bgBrightRed', , 'bgBrightGreen', , 'bgBrightYellow', 'bgBrightBlue', 'bgBrightMagenta', 'bgBrightCyan' ] as const
 export type Color = typeof colorNames[number]
 
-export const debugArgs = {
-    level: 0, 
-    color:'none' as Color, 
-    text: '__debug was here__'
+export type DebugArgs<T extends string ,U> = {
+    oper: string,
+    iMatcher:  InternMatcherExt<T,U> | undefined,
+    level: number, 
+    color: Color, 
+    text: string
 }
-
-export type DebugArgs = typeof debugArgs
-export type DebugLogFunc = (args: DebugArgs) => unknown
+export type DebugLogFunc<T extends string,U> = (args: DebugArgs<T,U>) => unknown
 
 export class XorGroup {
     matched: boolean[] = []
@@ -264,4 +264,3 @@ export const retValues = [
 export type retValuesT    = typeof retValues[number]
 export type ValidationRT  = { ok: boolean, err: string }
 export type ValidationMap = Map<number, ValidationRT>
-

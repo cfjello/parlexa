@@ -7,11 +7,11 @@ import { DebugLogFunc, InternMatcher, InternMatcherExt, ValidationRT } from "./t
 import { ParseFuncScope } from "./types.ts";
 
 
-export class  Validation<L,T,U> {
-    debugger: Debug 
-    msg: DebugLogFunc
+export class  Validation<L,T extends string,U> {
+    debugger: Debug<T,U> 
+    msg: DebugLogFunc<T,U>
  
-    constructor(_debugger: Debug ) {
+    constructor(_debugger: Debug<T,U> ) {
         this.debugger = _debugger
         this.msg = _debugger.msg
     }
@@ -83,6 +83,8 @@ export class  Validation<L,T,U> {
                         if ( ! s.logic.isMatched(iMatcher.logicGroup, s.isc.roundTrips)  ) { 
                             // Logic group is not matched
                             this.msg( {
+                                oper: 'LOGIC',
+                                iMatcher: undefined,
                                 level: s.isc.level+1,
                                 color: 'bgBrightYellow',
                                 text: `Logic match failure for ${iMatcher.keyExt}`
@@ -94,6 +96,8 @@ export class  Validation<L,T,U> {
                         else {
                             // logic is matched
                             this.msg( {
+                                oper: 'LOGIC',
+                                iMatcher: undefined,
                                 level: s.isc.level+1,
                                 color: 'bgBrightYellow',
                                 text: `Logic matched for ${iMatcher.keyExt}`

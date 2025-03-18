@@ -36,7 +36,7 @@ export class Rules<L extends string, T extends string, U> {
     LRReverseMap  = new Map<RegExp | Matcher<T,U>, T>()
     PRMap         = new Map<T, ExpectMap<T,U>>()         // Maps the Parser object  
 
-    constructor( public LR: LexerRules<L,U>,  public PR: ParserRules<T,U> , public debugging: Debug ) {
+    constructor( public LR: LexerRules<L,U>,  public PR: ParserRules<T,U> , public debugging: Debug<T,U> ) {
         this.msg = debugging.msg
         const multiDefault: Cardinality  = '0:m'
         try {
@@ -186,6 +186,8 @@ export class Rules<L extends string, T extends string, U> {
                 m.logic         = this._logic
                 this._logicActive = false
                 this.msg ({
+                    oper: 'Create Logic',
+                    iMatcher: undefined,
                     level: 0,
                     text: `Create Logic for -> ${logicKey}: ${JSON.stringify(this.logicMap.get(logicKey))}`,
                     color: 'green'

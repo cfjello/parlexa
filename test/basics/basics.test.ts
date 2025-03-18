@@ -219,7 +219,9 @@ Deno.test({
         parser.reset(input)
         const tree = parser.getParseTree()
         // deno-lint-ignore no-explicit-any
-        const matcher : any[] = tree.filter( v => v.token === 'DUMMY' )
+        let matcher : any[] = tree.filter( v => v.token === 'DUMMY' )
+        assertEquals( matcher.length, 1)
+        matcher = tree.filter( v => v.value === '5678' && v.matched)
         assertEquals( matcher.length, 1)
     },
     sanitizeResources: false,
