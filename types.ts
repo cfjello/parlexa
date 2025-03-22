@@ -171,7 +171,7 @@ export type InternMatcher<T extends string,U> = {
 }
 
 export type InternMatcherExt<T extends string,U> = InternMatcher<T,U> & {  
-    token:      T, 
+    // token:      T, 
     level:      number,  
     min:        number,
     max:        number,

@@ -2,7 +2,7 @@ import { assert, assertEquals } from "https://deno.land/std/assert/mod.ts"
 import { angie } from "../resource/angieData.ts"
 import { Parser } from "../../Parser.ts";
 import  LR  from "../resource/lexerRules.ts"
-import { PR } from "../resource/parserRules.ts"
+import { PR, UserData } from "../resource/parserRules.ts"
 // deno-lint-ignore no-explicit-any
 export interface PIndexable { [key: string]: any }
 
@@ -41,8 +41,8 @@ Deno.test({
     name: '03 - Parser can handle more than one XOR parse descriptor', 
     fn: () => {  
         const str = "[KEY:xyz]"
-        const parser = new Parser( LR, PR, 'testDummy')
-        parser.debug = false
+        const parser = new Parser( LR, PR, 'testDummy' , { comment : 'UserData'} , true)
+        parser.debug = true
         parser.reset(str)
         assert( parser.result.size >= 5 )
         const minor = parser.getParseTree().filter( v => v.token !== 'IN_SWING_RHS')    

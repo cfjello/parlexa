@@ -197,7 +197,7 @@ export class Parser<L extends string, T extends string, U = unknown> {
                 s.iMatcher.offsets.push(this.p.pos) 
 
                 // Main loop 
-                this.parseExpect(s)  
+                this.parseExpect(token, s)  
                 if ( ! s.iMatcher.matched ) {
                     // Reset the match position
                     this.resetMatchPos(s.mRec.tokenExt, s.isc.goingInPos, s.isc.level)
@@ -768,7 +768,7 @@ export class Parser<L extends string, T extends string, U = unknown> {
         }
     }
 
-    parseExpect( s: ParseFuncScope<L,T,U> ): void {
+    parseExpect( token: T, s: ParseFuncScope<L,T,U> ): void {
         try {
             //
             // Iterate over the expect array
@@ -776,14 +776,13 @@ export class Parser<L extends string, T extends string, U = unknown> {
             let tryNext = { ok: false, err: '' }
             let anyMatch = false
             let firstLogicGroup = true
-            let optimisticChk = false
             
             const expectLen = s.eMap.expect.length - 1
             let lastEntry = false 
 
             // Simple local tracking for optimistic matching of XOR groups
             const xorGroup: boolean[] = []
-            let xorIndex = -1
+            // let xorIndex = -1
 
             s.eMap.expect.every( ( _iMatcher: InternMatcher<T,U>, idx: number ) => { 
                 lastEntry = ( idx === expectLen ) 
@@ -815,7 +814,7 @@ export class Parser<L extends string, T extends string, U = unknown> {
 
                 s.matchers.push(iMatcherRaw)
 
-                const iMatcher = iMatcherFac('parseExpect', s, idx, this.p )
+                const iMatcher = iMatcherFac('parseExpect', s, idx, this.p, token )
 
                 // Check for startOn on idx 0 and subsequent idx > 0 that belong to the same initial logic group
                 firstLogicGroup = firstLogicGroup  || ( idx === 0 && iMatcher.logicApplies ) 
@@ -871,7 +870,7 @@ export class Parser<L extends string, T extends string, U = unknown> {
                             iMatcher.matchCnt >= iMatcher.min && 
                             iMatcher.matchCnt < iMatcher.max 
                     ) {
-                        xorGroup[ xorIndex ] = true
+                        xorGroup[ iMatcher.logicGroup ] = true
                     }
 
                     anyMatch = (anyMatch || iMatcher.matchCnt > 0 )
@@ -884,12 +883,15 @@ export class Parser<L extends string, T extends string, U = unknown> {
                             iMatch.matchCnt >= iMatch.min && 
                             iMatch.matchCnt < iMatch.max 
                     ) {
-                        xorGroup[ xorIndex ] = true
+                        xorGroup[ iMatcher.logicGroup ] = true
                     }
                     anyMatch = ( anyMatch || ( iMatcher.matchCnt > 0 ) ) ?? false
                 }
 
                 // To continue the loop, we need to have a match (if mandatory) and not have failed mandatory branch 
+                if (iMatcher.token === 'tilde' ) {
+                    this.debugHook = 1
+                }
                 tryNext   = this.tryNextExpectToken(s)
 
                 if ( s.isc.token !== this.always ) {      
@@ -905,7 +907,7 @@ export class Parser<L extends string, T extends string, U = unknown> {
             }); // End of expect.every()
 
             // Validate all iMachers in the expect array 
-            const optimistic = (this.optimistic && this.isEOF()) || ( optimisticChk && ! lastEntry )
+            const optimistic = (this.optimistic && this.isEOF()) || ( this.optimistic && ! lastEntry )
             
             // The whole loop has been completed successfully or validates according to the parser rules
             // If tryNext.ok is false and we are missing a mandatory match

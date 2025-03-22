@@ -56,7 +56,7 @@ export const parseInit = <L extends string,T extends string ,U>(
                 s.iMatcher.roundTrips = isc.roundTrips
             }
             else {
-                s.iMatcher = iMatcherFac( parent ? 'parseNT' : 'reset', s as Sealed<ParseFuncScope<L,T,U>, 'eMap' | 'isc'>, -1, p)
+                s.iMatcher = iMatcherFac( parent ? 'parseNT' : 'reset', s as Sealed<ParseFuncScope<L,T,U>, 'eMap' | 'isc'>, -1, p, isc.token)
             }
             // Add Match Record to the state
             s.mRec = matchRecInit(

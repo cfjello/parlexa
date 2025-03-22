@@ -155,6 +155,7 @@ export class Rules<L extends string, T extends string, U> {
     }
 
     _logicActive    = false
+    // _logicKey       = ''
     _logicGroup     = -1
     _logicIdx       = -1
     _logic: Logical = 'none'
@@ -165,6 +166,7 @@ export class Rules<L extends string, T extends string, U> {
                 const exist = this.logicMap.has( logicKey )
                 if ( ! exist ) this.logicMap.set(logicKey, new Logic(logicKey))
                 this._logicActive = true
+                // this._logicKey    = logicKey
                 this._logicGroup  = this.logicMap.get(logicKey)!.getLength()
                 this._logicIdx    = -1    
                 this._logic       = m.logic
@@ -174,7 +176,15 @@ export class Rules<L extends string, T extends string, U> {
             m.logicIdx   = ++this._logicIdx
             m.logicLast  = false
             m.logicApplies = true
+            
             this.logicMap.get(logicKey)!.setMatch({ key: m.key, group: m.logicGroup, idx: m.logicIdx, logic: m.logic, matched: false, roundTrip:0, tries: 0, matchCnt: 0 })
+            this.msg ({
+                oper: 'Create Logic',
+                iMatcher: undefined,
+                level: 0,
+                text: `Create Logic for entry -> ${logicKey}: ${JSON.stringify(this.logicMap.get(logicKey), undefined, 2 )}`,
+                color: 'green'
+            })
         }
         else {
             // Set the index for the LAST member of the group
@@ -185,15 +195,16 @@ export class Rules<L extends string, T extends string, U> {
                 m.logicApplies  = true
                 m.logic         = this._logic
                 this._logicActive = false
+               
+                // this.__debug__(`Create Logic for -> ${logicKey}: ${JSON.stringify(this.logicMap.get(logicKey))}`)
+                this.logicMap.get(logicKey)!.setMatch({ key: m.key, group: m.logicGroup, idx: m.logicIdx, logic: m.logic, roundTrip:0, tries: 0,  matched: false, matchCnt: 0 })
                 this.msg ({
                     oper: 'Create Logic',
                     iMatcher: undefined,
                     level: 0,
-                    text: `Create Logic for -> ${logicKey}: ${JSON.stringify(this.logicMap.get(logicKey))}`,
+                    text: `Create Logic for last entry -> ${logicKey}: ${JSON.stringify(this.logicMap.get(logicKey), undefined, 2 )}`,
                     color: 'green'
                 })
-                // this.__debug__(`Create Logic for -> ${logicKey}: ${JSON.stringify(this.logicMap.get(logicKey))}`)
-                this.logicMap.get(logicKey)!.setMatch({ key: m.key, group: m.logicGroup, idx: m.logicIdx, logic: m.logic, roundTrip:0, tries: 0,  matched: false, matchCnt: 0 })
             }
             else {
                 // NO active logic group 

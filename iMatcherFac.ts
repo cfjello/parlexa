@@ -7,7 +7,8 @@ export const iMatcherFac = <L extends string,T extends string,U>(
     caller: 'parseExpect' | 'parseNT' | 'reset',
     s:      ParseFuncScope<L,T,U>,
     _idx:    number, 
-    p: ParserSharedScope<L,T,U>
+    p: ParserSharedScope<L,T,U>,
+    token:  T 
     ): InternMatcherSealed<T,U> => {
         try {
             // deno-lint-ignore no-explicit-any
@@ -19,6 +20,7 @@ export const iMatcherFac = <L extends string,T extends string,U>(
                 idx = idx < 0 ? s.matchers.length -1 : _idx
                 iMatcher = s.matchers[idx]
                 iMatcher.parentId = iMatcher.parentId ?? s.iMatcher.id
+                iMatcher.parent = token
                 iMatcher.type = iMatcher.regexp ? 'terminal' : 'non-terminal'
             }
             else if ( caller === 'parseNT' ) {
@@ -26,11 +28,13 @@ export const iMatcherFac = <L extends string,T extends string,U>(
                 iMatcher.regexp = undefined
                 iMatcher.type = 'non-terminal'
                 iMatcher.parentId = s.isc.parentId
+                iMatcher.parent = token
             }
             else { // reset
                 iMatcher.regexp = undefined
                 iMatcher.type = 'non-terminal'
                 iMatcher.parentId = '__root__'
+                iMatcher.parent = token
             }
 
             iMatcher.id = ulid()
