@@ -26,7 +26,7 @@ export const matchRecInit = <L extends string,T extends string, U>(
               matched:  false,
               matchCnt: 0,
               parentId: iMatcher.parentId!,
-              level:    s.isc.level,
+              level:    s.args.level,
               children: []
             } satisfies MatchRecord<T> 
             // this.result.set( mRec.id, mRec)

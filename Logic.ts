@@ -41,20 +41,21 @@ export class Logic {
     }
 
     setIMatch<T extends string,U>( m: InternMatcher<T,U>, matched: boolean) {
-        if ( m.logicGroup > -1 ) {
-            this.setMatch({ key: m.keyExt!, group: m.logicGroup, idx: m.logicIdx, roundTrip: m.roundTrips, tries: m.tries, logic: m.logic, matched: matched, matchCnt: matched ? 1 : 0 })
-        }
+        assert ( m.logicGroup > -1, `Logic.setIMatch(): logicGroup is not set for token: ${m.token}`)
+        assert ( m.roundTrips > 0, `Logic.setIMatch(): roundTrips is not set for token: ${m.token}`)
+        this.setMatch({ key: m.keyExt!, group: m.logicGroup, idx: m.logicIdx, roundTrip: m.roundTrips, tries: m.tries, logic: m.logic, matched: matched, matchCnt: matched ? 1 : 0 })
     }
 
-    isMatched( group: number, roundTrip = 1 ): boolean {
+    isMatched( group: number, roundTrips = 1 ): boolean {
         let res = false
         let logic = ''
         try {
-            // console.debug( `isMatched() for token ${this.token}`) 
-            logic = this.logicGroups[group][roundTrip][0].logic
+            assert ( this.logicGroups[group], `Logic.isMatched(): logicGroup: ${group} is not set`)
+            assert ( this.logicGroups[group][roundTrips], `Logic.isMatched(): logicGroup: ${group} at roundTrip: ${roundTrips} is not set`)
+            logic = this.logicGroups[group][roundTrips][0].logic
 
-            assert ( logic !== '' && logic !== undefined, `Logic.isMatched(): logic for group: ${group} at roundTrip: ${roundTrip} is empty or undefined`)
-            const matches = this.logicGroups[group][roundTrip]
+            assert ( logic !== '' && logic !== undefined, `Logic.isMatched(): logic for group: ${group} at roundTrip: ${roundTrips} is empty or undefined`)
+            const matches = this.logicGroups[group][roundTrips]
                 .filter( f => { if ( f.logic !== 'NOP' && f.matched === true ) return f } )
             
             if ( matches.length === 0 )
@@ -74,6 +75,7 @@ export class Logic {
         let isAllMatched = true
         outerLoop: for( let group = 0; group < this.logicGroups.length; group++ ) {
             for( let roundTrip = 0; roundTrip < this.logicGroups[group].length; roundTrip++ ) {
+                if ( ! this.logicGroups[group][roundTrip] ) continue
                 const isMatched = this.isMatched(group, roundTrip)
                 if ( !isMatched ) {
                     isAllMatched = false

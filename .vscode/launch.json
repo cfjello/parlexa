@@ -13,7 +13,6 @@
             "runtimeExecutable": "C:\\Users\\claus\\.deno\\bin\\deno.exe",
             "runtimeArgs": [
                 "run",
-                "--unstable",
                 "--inspect-brk=127.0.0.1:9300",
                 "--allow-all"
             ],
@@ -30,7 +29,6 @@
             "runtimeExecutable": "C:\\Users\\claus\\.deno\\bin\\deno.exe",
             "runtimeArgs": [
                 "run",
-                "--unstable",
                 "--inspect-brk",
                 "--allow-all",
                 "${file}"
@@ -47,7 +45,6 @@
                 "test", 
                 "--inspect-brk=127.0.0.1:9305",
                 "-A", 
-                "--unstable", 
                 "${file}"
             ],
             "attachSimplePort": 9305
@@ -60,8 +57,7 @@
             "runtimeArgs": [
                 "test", 
                 "--inspect-brk=127.0.0.1:9306",
-                "-A", 
-                "--unstable", 
+                "-A",  
                 "${file}"
             ],
             "attachSimplePort": 9306
@@ -74,8 +70,7 @@
             "runtimeArgs": [
                 "test", 
                 "--inspect-brk=127.0.0.1:9307",
-                "-A", 
-                "--unstable", 
+                "-A",  
                 "${file}"
             ],
             "attachSimplePort": 9307
@@ -88,8 +83,7 @@
             "runtimeArgs": [
                 "test", 
                 "--inspect-brk=127.0.0.1:9308",
-                "-A", 
-                "--unstable", 
+                "-A",  
                 "${file}"
             ],
             "attachSimplePort": 9308
@@ -103,7 +97,6 @@
                 "test", 
                 "--inspect-brk=127.0.0.1:9309",
                 "-A", 
-                "--unstable", 
                 "${file}"
             ],
             "attachSimplePort": 9309

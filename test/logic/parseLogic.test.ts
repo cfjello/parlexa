@@ -41,8 +41,8 @@ Deno.test({
     name: '03 - Parser can handle more than one XOR parse descriptor', 
     fn: () => {  
         const str = "[KEY:xyz]"
-        const parser = new Parser( LR, PR, 'testDummy' , { comment : 'UserData'} , true)
-        parser.debug = true
+        const parser = new Parser( LR, PR, 'testDummy' , { comment : 'UserData'} , false)
+        parser.debug = false
         parser.reset(str)
         assert( parser.result.size >= 5 )
         const minor = parser.getParseTree().filter( v => v.token !== 'IN_SWING_RHS')    

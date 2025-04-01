@@ -181,6 +181,7 @@ export type InternMatcherExt<T extends string,U> = InternMatcher<T,U> & {
     roundtripFailed: boolean,
     errors:     string[],
     branchFailed: () => boolean,
+    branchMatched: () => boolean,
     setStatus: ( s: retValuesT, errMsg: string ) => void   
 }
 
@@ -239,7 +240,7 @@ export type ParseArgs<T extends string> = {
 
 export type ParseFuncScope<L extends string, T extends string, U = unknown> = {
     pRef:       Parser<L,T,U>,
-    isc:        ParseArgs<T>, 
+    args:       ParseArgs<T>, 
     eMap:       ExpectMap<T,U>, 
     iMatcher:   InternMatcherExt<T,U>, 
     mRec:       MatchRecordExt<T>, 
@@ -251,6 +252,7 @@ export type ParseFuncScope<L extends string, T extends string, U = unknown> = {
 
 export const retValues = [ 
     'matched', 
+    'branchMatched',
     'notMatched',
     'EOF',
     'branchFailed',
@@ -262,5 +264,5 @@ export const retValues = [
     'other' 
 ] as const
 export type retValuesT    = typeof retValues[number]
-export type ValidationRT  = { ok: boolean, err: string }
+export type ValidationRT  = { ok: boolean, msg: string }
 export type ValidationMap = Map<number, ValidationRT>

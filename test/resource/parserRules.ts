@@ -24,9 +24,10 @@ export type Tokens = LexerTokens | ParserTokens
 // 
 export const PR: ParserRules<ParserTokens | LexerTokens, UserData> = {
     always: {  
+        multi: '1:m',
         expect: [
-            [ LR.WS , '0:m', 'ignore'],
-            [ LR.NL,  '0:m' ]
+            [ LR.WS , '1:1', 'ignore', 'or'],
+            [ LR.NL,  '1:1' ]
         ]
     },
     duration: {    

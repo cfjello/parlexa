@@ -86,7 +86,7 @@ Deno.test({
     fn: () => {  
         const input = `     let øæå  = [ 1234, 'I am a string', [ 5678, 6789, 78910], 'ÆØÅ string with numbers 123456' ]`;
         const parser = new Parser( LR, PR, 'reset')
-        parser.debug = false
+        parser.debug = true
         parser.reset(input)
         assert( parser.result.size > 70)
         const tree = parser.getParseTree()
@@ -201,7 +201,7 @@ Deno.test({
         parser.reset(input)
         const tree = parser.getParseTree()
         // deno-lint-ignore no-explicit-any
-        const matcher : any[] = tree.filter( v => v.token === 'DUMMY' )
+        const matcher : any[] = tree.filter( v => v.token === 'DUMMY' && v.matched )
         assertEquals( matcher.length, 1)
     },
     sanitizeResources: false,
@@ -219,7 +219,7 @@ Deno.test({
         parser.reset(input)
         const tree = parser.getParseTree()
         // deno-lint-ignore no-explicit-any
-        let matcher : any[] = tree.filter( v => v.token === 'DUMMY' )
+        let matcher : any[] = tree.filter( v => v.token === 'DUMMY' && v.matched )
         assertEquals( matcher.length, 1)
         matcher = tree.filter( v => v.value === '5678' && v.matched)
         assertEquals( matcher.length, 1)

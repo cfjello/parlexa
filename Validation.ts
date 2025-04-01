@@ -16,15 +16,15 @@ export class  Validation<L,T extends string,U> {
         this.msg = _debugger.msg
     }
 
-    progress = <L extends string,T extends string,U>(s: ParseFuncScope<L,T,U>, pos: number) : boolean => ( pos > s.isc.goingInPos )
+    progress = <L extends string,T extends string,U>(s: ParseFuncScope<L,T,U>, pos: number) : boolean => ( pos > s.args.goingInPos )
 
     inRange =  <L extends string, T extends string,U>(s: ParseFuncScope<L,T,U>): boolean => { 
         let ret = false
         try {
             if ( s.iMatcher ) {
                 const rtOffset = s.iMatcher.branchFailed() ? -1 : 0 
-                // ret = (s.isc.roundTrips + rtOffset) >= s.iMatcher.min && (s.isc.roundTrips + rtOffset) <= s.iMatcher.max 
-                ret = (s.isc.roundTrips + rtOffset) <= s.iMatcher.max 
+                // ret = (s.args.roundTrips + rtOffset) >= s.iMatcher.min && (s.args.roundTrips + rtOffset) <= s.iMatcher.max 
+                ret = (s.args.roundTrips + rtOffset) <= s.iMatcher.max 
             }
         }
         catch (err) { 
@@ -67,58 +67,75 @@ export class  Validation<L,T extends string,U> {
             // Validation of logic groups:
             // When we matched or not matched the last element in 
             // the currently active Logic Group, we check if it has failed or not
-            let ret = { ok: true, err: '' }
+            let ret = { ok: true, msg: '' }
+            const level = s.args.level + 2
             try {
                 if ( idx < 0 || ( idx >= s.matchers.length ) ) {
-                    ret = { ok: false, err: `Logic group index out of range: ${idx}` }
+                    ret = { ok: false, msg: `Logic group index out of range: ${idx}` }
                 }
                 else {
                     const iMatcher = s.matchers[idx]
+                    if (iMatcher.keyExt === 'rhsAssign.arrAssign' ) {
+                        const _debugHook = 1        
+                    }   
+                    /*
+                    if ( iMatcher.branchMatched() ) {
+                        ret = { ok: true, msg: `Branch matched for ${iMatcher.keyExt}` }
+                    }
+                    else if ( iMatcher.branchFailed() ) {
+                        ret = { ok: false, msg: `Branch failed for ${iMatcher.keyExt}` }
+                    }
+                    else {
+                    */
                     if ( iMatcher.logicApplies ) {
                         if ( iMatcher.matchCnt > iMatcher.max ) {
-                            ret = { ok: false, err: 'Max allowed matches exceeded' }
+                            ret = { ok: false, msg: 'Max allowed matches exceeded' }
                         }      
                     }
                     if ( iMatcher.logicLast ) {
-                        if ( ! s.logic.isMatched(iMatcher.logicGroup, s.isc.roundTrips)  ) { 
+                        if ( ! s.logic.isMatched(iMatcher.logicGroup, iMatcher.roundTrips)  ) { 
                             // Logic group is not matched
                             this.msg( {
                                 oper: 'LOGIC',
                                 iMatcher: undefined,
-                                level: s.isc.level+1,
-                                color: 'bgBrightYellow',
+                                level: level,
+                                color: 'yellow',
                                 text: `Logic match failure for ${iMatcher.keyExt}`
                                 }   
                             ) 
+                            if ( iMatcher.keyExt === 'rhsAssign.arrAssign') {
+                                const _debugHook = 1
+                            }
                             const failBranchMsg = `Logic match constraint is violated for ${iMatcher.keyExt}`
-                            ret = { ok: false, err: failBranchMsg }
+                            ret = { ok: false, msg: failBranchMsg }
                         }
                         else {
                             // logic is matched
                             this.msg( {
                                 oper: 'LOGIC',
                                 iMatcher: undefined,
-                                level: s.isc.level+1,
-                                color: 'bgBrightYellow',
+                                level: level,
+                                color: 'yellow',
                                 text: `Logic matched for ${iMatcher.keyExt}`
                                 }   
                             ) 
                         }
+ 
                         // if ( ret.ok && iMatcher.logicApplies && iMatcher.matchCnt < iMatcher.min ) {
                         //     ret = { ok: false, err: `Match count failed minimum count for ${iMatcher.keyExt}` }
                         // }
                     }
                 }
+                return ret
             }
             catch (err) { 
                 console.error(err)
                 throw err 
             }
-            return ret
         }
 
-    validLogic = <L extends string,T extends string,U>( s: ParseFuncScope<L,T,U>, optimistic = false ): ValidationRT => {
-        let ret = { ok: true, err: '' }
+    validLogic = <L extends string,T extends string,U>( s: ParseFuncScope<L,T,U>, optimistic: boolean ): ValidationRT => {
+        let ret = { ok: true, msg: '' }
         try {    
             const logicChk = [] as boolean[]
             const logicApplies = s.eMap.expect.some( e => e.logicApplies )
@@ -140,7 +157,7 @@ export class  Validation<L,T extends string,U> {
                         else {
                             ret = this.validLogicGroup(s, idx)
                             if ( ! ret.ok) {
-                                s.iMatcher.setStatus('branchFailed', ret.err ?? `Logic group failed for ${eMatcher.keyExt}`)
+                                s.iMatcher.setStatus('branchFailed', ret.msg ?? `Logic group failed for ${eMatcher.keyExt}`)
                                 return false
                             }
                         }
@@ -152,7 +169,7 @@ export class  Validation<L,T extends string,U> {
             if ( optimistic ) {
                 for ( let i = 0 ; i < logicChk.length ; i++ ) {
                     if ( logicChk[i] === false ) {
-                        ret = { ok: false, err: `Optimistic check of logic group ${i} failed` }
+                        ret = { ok: false, msg: `Optimistic check of logic group ${i} failed` }
                         break
                     }
                 }
@@ -166,34 +183,34 @@ export class  Validation<L,T extends string,U> {
     }
 
     matchInRange = <T extends string,U>(iMatcher: InternMatcherExt<T,U> ): ValidationRT => {
-        const ret = { ok: true, err: ''}
+        const ret = { ok: true, msg: ''}
         if ( ! iMatcher.logicApplies ) {
             ret.ok = ( iMatcher.matchCnt >=  iMatcher.min ) && ( iMatcher.matchCnt <= iMatcher.max )
             if ( ! ret.ok ) {
-                ret.err = `Match count out of range for ${iMatcher.keyExt}`
+                ret.msg = `Match count out of range for ${iMatcher.keyExt}`
             }
         }
         else {
             ret.ok = ! ( iMatcher.matchCnt > iMatcher.max )
             if ( ! ret.ok ) {
-                ret.err = `Match count exceded range for ${iMatcher.keyExt}`
+                ret.msg = `Match count exceded range for ${iMatcher.keyExt}`
             }
         }
         return ret 
     }
 
     validMatchCounts = <L extends string,T extends string,U>(s: ParseFuncScope<L,T,U>): ValidationRT => {
-        assert(s.isc.token, `validMatchCounts(): s.isc.token is undefined`)
+        assert(s.args.token, `validMatchCounts(): s.args.token is undefined`)
         assert( s.eMap.expect.length > 0, `validMatchCounts(): eMap.expect.length is 0`)
 
-        let ret = { ok: true, err: '' }
+        let ret = { ok: true, msg: '' }
         try {
             s.matchers.every( ( iMatcher: InternMatcherExt<T,U>, _idx: number ) => { 
                 if ( iMatcher.logic === 'none') {
                     const inRange = this.matchInRange(iMatcher)
                     if ( ! inRange.ok ) {
-                        ret = { ok: false, err: `Match count out of range for ${iMatcher.keyExt}: ${inRange.err}` }
-                        s.iMatcher.setStatus('branchFailed', ret.err)
+                        ret = { ok: false, msg: `Match count out of range for ${iMatcher.keyExt}: ${inRange.msg}` }
+                        s.iMatcher.setStatus('branchFailed', ret.msg)
                         return false
                     }
                 }

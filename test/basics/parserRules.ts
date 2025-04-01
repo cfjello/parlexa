@@ -31,7 +31,7 @@ export const PR: ParserRules<Tokens, UserData> = {
     always : {  
         multi: '0:m',
         expect: [
-            [ LR.WS , '0:1', 'ignore'],
+            [ LR.WS , '0:1', 'ignore', 'or'],
             [ LR.NL,  '0:1' ]
         ]
     },
