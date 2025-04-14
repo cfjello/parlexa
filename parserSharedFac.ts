@@ -4,7 +4,7 @@ import { _ } from "./lodash.ts";
 // Shared Parser Scope
 export const parserSharedFac = <L extends string,T extends string,U>( pRef: Parser<L,T,U>) => {
     return {
-        pRef:       pRef,
+        self:       pRef,
         // White space and new line
         newLine:    'NL',
         whiteSpace: 'WS',

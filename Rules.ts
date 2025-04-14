@@ -147,6 +147,7 @@ export class Rules<L extends string, T extends string, U> {
                 } satisfies  ExpectMap<T,U>
             )
         })
+        // Freze
     }
     catch (err) { 
         console.error((err as Error).message) 
@@ -177,7 +178,7 @@ export class Rules<L extends string, T extends string, U> {
             m.logicLast  = false
             m.logicApplies = true
             
-            this.logicMap.get(logicKey)!.setMatch({ key: m.key, group: m.logicGroup, idx: m.logicIdx, logic: m.logic, matched: false, roundTrip:0, tries: 0, matchCnt: 0 })
+            this.logicMap.get(logicKey)!.initMatch({ key: m.key, group: m.logicGroup, idx: m.logicIdx, logic: m.logic, matched: false, tries: 0, matchCnt: 0 })
             this.msg ({
                 oper: 'Create Logic',
                 iMatcher: undefined,
@@ -197,7 +198,7 @@ export class Rules<L extends string, T extends string, U> {
                 this._logicActive = false
                
                 // this.__debug__(`Create Logic for -> ${logicKey}: ${JSON.stringify(this.logicMap.get(logicKey))}`)
-                this.logicMap.get(logicKey)!.setMatch({ key: m.key, group: m.logicGroup, idx: m.logicIdx, logic: m.logic, roundTrip:0, tries: 0,  matched: false, matchCnt: 0 })
+                this.logicMap.get(logicKey)!.initMatch({ key: m.key, group: m.logicGroup, idx: m.logicIdx, logic: m.logic, tries: 0,  matched: false, matchCnt: 0 })
                 this.msg ({
                     oper: 'Create Logic',
                     iMatcher: undefined,
@@ -221,7 +222,7 @@ export class Rules<L extends string, T extends string, U> {
     resolveString( 
         key: string,
         multiDefault: Cardinality = '0:m',
-        parent: string | undefined = undefined
+        parentToken: string | undefined = undefined
     ): InternMatcher<T,U> {
         return { 
             token:      key as T,
@@ -236,7 +237,7 @@ export class Rules<L extends string, T extends string, U> {
             regexp:     undefined,
             cb:         undefined,
             cbLex:      undefined,
-            parent:   parent,
+            parentToken:parentToken,
             idx:        0,
             roundTrips: 0,
             tries:      0,
@@ -272,7 +273,7 @@ export class Rules<L extends string, T extends string, U> {
             // lRRef:  e as unknown as Matcher<T,U>,
             cb:     e.cb ?? undefined,
             cbLex:  lexCb ?? undefined, 
-            parent: parent,
+            parentToken: parent,
             idx:        0,
             roundTrips: 0,
             tries:      0,
@@ -289,7 +290,7 @@ export class Rules<L extends string, T extends string, U> {
         key: string,
         e: RegExp,
         multiDefault: Cardinality = '0:m',
-        parent: string | undefined = undefined
+        parentToken: string | undefined = undefined
     ): InternMatcher<T,U> {
         assert( e !== undefined, `RegExp: '${e}' is undefined` )
         const regKey  = this.LRReverseMap.get(e as RegExp)!
@@ -312,7 +313,7 @@ export class Rules<L extends string, T extends string, U> {
             // lRRef:  e as unknown as RegExp,
             cb:         undefined,
             cbLex:      matcher.cb as Callback<T, unknown> ?? undefined,
-            parent:   parent,
+            parentToken:   parentToken,
             idx:        0,
             roundTrips: 0,
             tries:      0,
@@ -325,7 +326,7 @@ export class Rules<L extends string, T extends string, U> {
     resolveExpectArray( 
         e: Array<ShortExpectEntry<T,U>>, 
         multiDefault: Cardinality,
-        parent: string | undefined = undefined
+        parentToken: string | undefined = undefined
     ): InternMatcher<T,U> {
         const res: InternMatcher<T,U> = { 
             token:      '__undef__' as T,
@@ -348,15 +349,15 @@ export class Rules<L extends string, T extends string, U> {
             regexp:     undefined,
             cb:         undefined,
             cbLex:      undefined,
-            parent:   parent,
+            parentToken:   parentToken,
             matched:    false
         } satisfies InternMatcher<T,U>
         // Checks 
         let i = 0
         for (; i < e.length; i++ ) {
-            assert( e[i] !== undefined , `resolveExpectArray() got undefined match array[${i}] from '${ parent ? parent : 'unknown'}' parent - check your parser rules and lexer regexp.`)
+            assert( e[i] !== undefined , `resolveExpectArray() got undefined match array[${i}] from '${ parentToken ? parentToken : 'unknown'}' parent - check your parser rules and lexer regexp.`)
         }
-        assert( i > 0, `resolveExpectArray() got an empty match array from '${ parent ? parent : 'unknown'}' parent  - check your lexer regexp.`)
+        assert( i > 0, `resolveExpectArray() got an empty match array from '${ parentToken ? parentToken : 'unknown'}' parent  - check your lexer regexp.`)
         // Resolve
         for ( const v of e ) {
             if ( typeof v === 'function' ) {

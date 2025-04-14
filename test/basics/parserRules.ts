@@ -31,7 +31,7 @@ export const PR: ParserRules<Tokens, UserData> = {
     always : {  
         multi: '0:m',
         expect: [
-            [ LR.WS , '0:1', 'ignore', 'or'],
+            [ LR.WS , '0:1', 'or'],
             [ LR.NL,  '0:1' ]
         ]
     },
@@ -71,16 +71,16 @@ export const PR: ParserRules<Tokens, UserData> = {
         multi: '1:1',
         expect: [ 
             {   match: LR.STR, 
-                multi: '0:1', 
+                multi: '1:1', 
                 logic: 'xor',
                 cb: (m, s) => { s.comment = 'This is parser global user defined data' ;return m }
             } satisfies Matcher<Tokens, UserData>,
-            [LR.INT, '0:1', 'xor', (m: MatchRecordExt<Tokens>, u: UserData) => { 
+            [LR.INT, '1:1', 'xor', (m: MatchRecordExt<Tokens>, u: UserData) => { 
                 u.intWasHere = 'integer was here';
                 u.callBackFound = true;
                 m.intAssignCB = `${m.token} Callback was here`
             }],
-            ['arrAssign', '0:1']
+            ['arrAssign', '1:1']
         ] 
     },
 

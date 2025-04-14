@@ -12,11 +12,10 @@ import { _ } from "./lodash.ts";
           this entry is considered the last entry of the active group  
 */
 export class Logic {
-    roundTrips = 0 
-    
+   
     constructor(
         public logicKey: string, 
-        public logicGroups: LogicDescriptor[][][] = [],
+        public logicGroups: LogicDescriptor[][] = [],
         public debug = false
     ) {}
 
@@ -24,38 +23,45 @@ export class Logic {
         return this.logicGroups.length
     }
 
+    initMatch( ld: LogicDescriptor ) {
+        if ( ! this.logicGroups[ld.group] ) this.logicGroups[ld.group] = []
+     
+        const firstEntry = this.logicGroups[ld.group].length === 0 
+        if ( firstEntry ) {
+            assert( ld.logic !== 'NOP', `Logic in group for ${this.logicKey} - first entry cannot be 'NOP'`)   
+        }
+        this.logicGroups[ld.group].push(ld)
+    }
+
     setMatch( ld: LogicDescriptor) {
         if ( ! this.logicGroups[ld.group] ) this.logicGroups[ld.group] = []
-        if ( ! this.logicGroups[ld.group][ld.roundTrip] ) this.logicGroups[ld.group][ld.roundTrip] = []
 
-        if ( this.logicGroups[ld.group][ld.roundTrip].length === 0 ) {
+        const firstEntry = this.logicGroups[ld.group].length === 0 
+        if ( firstEntry ) {
             assert( ld.logic !== 'NOP', `Logic in group for ${this.logicKey} - first entry cannot be 'NOP'`)
-            this.logicGroups[ld.group][ld.roundTrip].push(ld)
         }
-        else {
-            const logic = this.logicGroups[ld.group][ld.roundTrip][0].logic
-            assert( ld.logic === logic || ld.logic === 'NOP' || ld.logic === 'none', `Logic in group for ${this.logicKey}: ${ld.logic} <> ${logic} must be the same or 'NOP' within each group`)
-            this.logicGroups[ld.group][ld.roundTrip].push(ld)
-        }
-        this.roundTrips = ld.roundTrip > this.roundTrips ? ld.roundTrip : this.roundTrips 
+        const logic = this.logicGroups[ld.group][0].logic
+        assert( ld.logic === logic || ld.logic === 'NOP' || ld.logic === 'none', `Logic in group for ${this.logicKey}: ${ld.logic} <> ${logic} must be the same or 'NOP' within each group`)
+        
+        this.logicGroups[ld.group][ld.idx].matched = ld.matched
+        this.logicGroups[ld.group][ld.idx].matchCnt = ld.matchCnt
+        this.logicGroups[ld.group][ld.idx].tries = ld.tries
     }
 
-    setIMatch<T extends string,U>( m: InternMatcher<T,U>, matched: boolean) {
+    setIMatch<T extends string,U>( m: InternMatcher<T,U>, matched: boolean ) {
         assert ( m.logicGroup > -1, `Logic.setIMatch(): logicGroup is not set for token: ${m.token}`)
-        assert ( m.roundTrips > 0, `Logic.setIMatch(): roundTrips is not set for token: ${m.token}`)
-        this.setMatch({ key: m.keyExt!, group: m.logicGroup, idx: m.logicIdx, roundTrip: m.roundTrips, tries: m.tries, logic: m.logic, matched: matched, matchCnt: matched ? 1 : 0 })
+        this.setMatch({ key: m.keyExt!, group: m.logicGroup, idx: m.logicIdx, tries: m.tries, logic: m.logic, matched: matched, matchCnt: matched ? 1 : 0 })
     }
 
-    isMatched( group: number, roundTrips = 1 ): boolean {
+    isMatched( group: number ): boolean {
         let res = false
         let logic = ''
         try {
             assert ( this.logicGroups[group], `Logic.isMatched(): logicGroup: ${group} is not set`)
-            assert ( this.logicGroups[group][roundTrips], `Logic.isMatched(): logicGroup: ${group} at roundTrip: ${roundTrips} is not set`)
-            logic = this.logicGroups[group][roundTrips][0].logic
+            logic = this.logicGroups[group][0].logic
 
-            assert ( logic !== '' && logic !== undefined, `Logic.isMatched(): logic for group: ${group} at roundTrip: ${roundTrips} is empty or undefined`)
-            const matches = this.logicGroups[group][roundTrips]
+            assert ( logic !== '' && logic !== undefined, `Logic.isMatched(): logic for group: ${group} is empty or undefined`)
+            const matches = this.logicGroups[group]
                 .filter( f => { if ( f.logic !== 'NOP' && f.matched === true ) return f } )
             
             if ( matches.length === 0 )
@@ -71,22 +77,27 @@ export class Logic {
         return res
     }
 
-    validate() {
-        let isAllMatched = true
-        outerLoop: for( let group = 0; group < this.logicGroups.length; group++ ) {
-            for( let roundTrip = 0; roundTrip < this.logicGroups[group].length; roundTrip++ ) {
-                if ( ! this.logicGroups[group][roundTrip] ) continue
-                const isMatched = this.isMatched(group, roundTrip)
-                if ( !isMatched ) {
-                    isAllMatched = false
-                    break outerLoop
-                }
-            }
+    validate(): boolean {
+        let isMatched = true
+        for( let group = 0; group < this.logicGroups.length; group++ ) {
+            isMatched = this.isMatched( group )
+            if ( !isMatched ) break
         }
-        return isAllMatched
+        return isMatched
+    }
+
+    validateGroup( group: number): boolean {
+        let isMatched = true
+        try {
+            isMatched = this.isMatched(group)
+        }
+        catch (err) { 
+            console.error(err)
+        }
+        return isMatched
     }
 
     getCopy() {
-        return _.clone(this.logicGroups) as typeof this.logicGroups
+        return _.cloneDeep(this.logicGroups) as typeof this.logicGroups
     }
 }

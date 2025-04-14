@@ -112,7 +112,7 @@ export type LogicDescriptor = {
     group:      number,
     idx:        number,
     matched:    boolean,
-    roundTrip:  number,
+    // roundTrip:  number,
     tries:      number,
     matchCnt:   number
 }
@@ -131,10 +131,10 @@ export type Breaks<T> = {
 }
 
 // Args for iMatcherInit()
-export type callerIM = 'parseNT' | 'parseExpect' | 'reset'
+export type callerIM = 'parse' | 'parseExpect' | 'reset' | 'matchTerminal' | 'removeWS'
 
 export type InternMatcherArgs<L extends string,T extends string,U> = {
-    caller: 'parseExpect' | 'parseNT' | 'reset',
+    caller: callerIM,
     s:      ParseFuncScope<L,T,U>,
     idx:    number, 
 }
@@ -162,7 +162,7 @@ export type InternMatcher<T extends string,U> = {
     regexp?:    RegExp,
     cbLex?:     Callback<T,U>,
     cb?:        Callback<T,U>,
-    parent?:    string,
+    parentToken?: string,
     parentId?:  string,
     keyExt?:    string,
     logicApplies: boolean,
@@ -187,6 +187,8 @@ export type InternMatcherExt<T extends string,U> = InternMatcher<T,U> & {
 
 
 export type retValuesArrayT = Array<retValuesT>
+export type ParseFuncReturns = 'EOF' | 'branchMatched' | 'branchFailed' | 'skipped' | 'parseMatched' | 'parseFailed' 
+
 
 /*
 export type Required<T> = {
@@ -230,6 +232,7 @@ export type LexerRules<T extends string, U> = Record< T, RegExp | Matcher<T,U> >
 
 export type ParseArgs<T extends string> = {
     token:      T, 
+    caller:     callerIM,
     parentId:   string, 
     parentIdx:  number,
     level:      number, 
@@ -244,7 +247,7 @@ export type ParseFuncScope<L extends string, T extends string, U = unknown> = {
     eMap:       ExpectMap<T,U>, 
     iMatcher:   InternMatcherExt<T,U>, 
     mRec:       MatchRecordExt<T>, 
-    logic:      Logic, 
+    logic:      Logic[], 
     breaks:     Array<RegExp>, 
     starts:     Array<RegExp>, 
     matchers:   Array<InternMatcherSealed<T,U>>,
@@ -253,7 +256,10 @@ export type ParseFuncScope<L extends string, T extends string, U = unknown> = {
 export const retValues = [ 
     'matched', 
     'branchMatched',
+    'parseMatched',
+    'parseFailed',
     'notMatched',
+    'skipped',
     'EOF',
     'branchFailed',
     'parserFailed',

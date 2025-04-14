@@ -13,9 +13,9 @@ Deno.test({
     fn: () => {  
         const parser = new Parser( LR, PR, 'reset')
         const map = parser.rules.logicMap
-        const bar = map.get('barEntry')!.logicGroups[0][0]
+        const bar = map.get('barEntry')!.logicGroups[0]
         assertEquals( bar.length, 4 )
-        const note = map.get('note')!.logicGroups[0][0]
+        const note = map.get('note')!.logicGroups[0]
         assertEquals( note.length, 3 )
     },
     sanitizeResources: false,

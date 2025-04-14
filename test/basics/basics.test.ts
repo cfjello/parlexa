@@ -86,7 +86,7 @@ Deno.test({
     fn: () => {  
         const input = `     let øæå  = [ 1234, 'I am a string', [ 5678, 6789, 78910], 'ÆØÅ string with numbers 123456' ]`;
         const parser = new Parser( LR, PR, 'reset')
-        parser.debug = true
+        parser.debug = false
         parser.reset(input)
         assert( parser.result.size > 70)
         const tree = parser.getParseTree()
@@ -179,11 +179,10 @@ Deno.test({
         const parser = new Parser( LR, PR, 'reset')
         parser.debug = false
         parser.reset(input)
-        const tree = parser.getParseTree(true)
-        // console.debug(`${JSON.stringify(tree,undefined,2)}`)
+        const _result = parser.result
+        const tree = parser.getFullParseTree()
         // deno-lint-ignore no-explicit-any
-        const matcher : any[] = tree.filter( v => v.token === 'NL' )
-       
+        const matcher : any[] = tree.filter( v => v.token === 'NL' && v.matched)
         assertEquals( matcher.length, 2)
     },
     sanitizeResources: false,
