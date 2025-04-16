@@ -22,7 +22,7 @@ const LR = {
                 matchRec.value = ( matchRec.value as string).trim()
             }
             catch(err) {
-                console.log(`${JSON.stringify(matchRec)} got: ${err}`)
+                console.error(`${JSON.stringify(matchRec)} got: ${err}`)
             }
         }
     },

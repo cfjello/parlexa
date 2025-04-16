@@ -3,9 +3,6 @@ import { Parser } from "../../Parser.ts";
 import  { LR, LexerTokens } from "../basics/lexerRules.ts"
 import  { PR, Tokens, UserData}  from "../basics/parserRules.ts"
 
-// deno-lint-ignore prefer-const
-let _debugHook = true
-
 Deno.test({
     name: '01 - Parsing an int assignment', 
     fn: () => {  

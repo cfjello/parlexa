@@ -43,7 +43,6 @@ export const iMatcherFac = <L extends string,T extends string,U>(
                 iMatcher.roundTrips = parent ? parent.args.roundTrips : 1
             }
 
-           
             iMatcher.id = ulid()
             iMatcher.parentToken = parent ? parent.args.token : '__root__'
 
@@ -61,8 +60,6 @@ export const iMatcherFac = <L extends string,T extends string,U>(
             iMatcher.max            = max
           
             iMatcher.keyExt =  iMatcher.parentToken + '.' + iMatcher.key
-            
-            
             iMatcher.roundtripFailed = false
             if ( caller === 'parseExpect' ) {
                 parent.mRec.children.push(iMatcher.id)

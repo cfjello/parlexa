@@ -67,10 +67,6 @@ export class Parser<L extends string, T extends string, U = unknown> {
     // Parser Rules and Validation
     rules: Rules<L,T,U>  
     validation: Validation<L,T,U>
-    
-    debugHook    = 0
-
-  
 
     // Max of match count for any token 
     // for use with the hierarkey node size
@@ -113,7 +109,7 @@ export class Parser<L extends string, T extends string, U = unknown> {
         const refCount = this.matchPositions.get( matchToken )?.get(pos) ?? 0
         return  ( refCount > 0 )
     }
-    isEOF() { return ( this.shared.pos >= this.shared.input.length || this.shared.lastPosMatched ) }
+    isEOF() { return ( this.shared.pos >= this.shared.input.length || this.shared.lastPosMatched )  }
     isBoF() { return ( this.shared.pos === 0 ) }
     isWS( s: ParseFuncScope<L,T,U> ): boolean {
         const iMatcher = s.matchers ? s.matchers.at(-1) : undefined
@@ -609,7 +605,7 @@ export class Parser<L extends string, T extends string, U = unknown> {
                 iMatcher.matched = true
                 iMatcher.matchCnt += 1
                 // Check if we have matched the last position in the input
-                this.shared.lastPosMatched = ( this.shared.pos === this.shared.input.length - 1 && iMatcher.matched );
+                this.shared.lastPosMatched = ( (this.shared.pos === this.shared.input.length ) && iMatcher.matched );
                 this.shared.col = this.shared.pos - this.shared.bol + 1
                 iMatcher.offsets.push(this.shared.pos)
 
@@ -766,14 +762,7 @@ export class Parser<L extends string, T extends string, U = unknown> {
                         }
                     }
                     else {
-                        try {
-                            if ( iMatcher.logicApplies ) parser.logic[iMatcher.roundTrips].setIMatch(iMatcher, matchRec.matched)
-                        }
-                        catch (err) {
-                            const _debugHook = 1
-                            console.error(err)
-                            throw err
-                        }
+                        if ( iMatcher.logicApplies ) parser.logic[iMatcher.roundTrips].setIMatch(iMatcher, matchRec.matched)
                         if ( ! this.isWS(parser) )
                             this.msg({
                                 oper: 'NO MATCH',
@@ -879,9 +868,6 @@ export class Parser<L extends string, T extends string, U = unknown> {
                             color: 'gray',
                             text: `Skip  ${iMatcher.keyExt}(L${parser.args.level},R${parser.args.roundTrips}) due to already matched XOR group: `
                         }) 
-                        if ( iMatcher.keyExt === 'arrElement.arrAssign')    {
-                            this.debugHook = 1
-                        }
                         return true
                     }
                 }
@@ -974,19 +960,13 @@ export class Parser<L extends string, T extends string, U = unknown> {
             }); // End of expect.every()
 
             // Validate all XOR iMachers in the expect array or be optimistic and match until first success
-            // const optimistic = this.optimistic || this.isEOF()
             
             // The whole loop has been completed successfully or validates according to the parser rules
             // If tryNext.ok is false and we are missing a mandatory match
             // if we have tried last iMatcher and the children are incompeletely macthed 
             // ( failure or success of sub-branches must have been propogated up through the call structure )
-
             // if branch is incomplete or failed, then reset the failed branch
 
-            if  ( parser.iMatcher.keyExt === 'rhsAssign.arrAssign' ) {
-                this.debugHook = 1
-            }
-           
             const valid = this.validation.validExpect(parser)
 
             validBranch = parser.iMatcher.roundTrips > 1 || valid ? 'branchMatched' : 'branchFailed'

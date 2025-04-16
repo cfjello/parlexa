@@ -4,10 +4,6 @@ import { Parser } from "../../Parser.ts";
 import  { LR, LexerTokens } from "../basics/lexerRules.ts"
 import  { PR, Tokens, UserData}  from "../basics/parserRules.ts"
 
-// deno-lint-ignore prefer-const
-let _debugHook = true
-
-
 function jsonOut( obj: object | string) {
 
     if ( typeof obj === 'string' ) {

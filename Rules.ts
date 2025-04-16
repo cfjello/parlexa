@@ -26,7 +26,6 @@ export interface IIndexable<T> { [key: string]: T }
 export class Rules<L extends string, T extends string, U> {
     // Debugging
     msg
-    debugHook = 0
     
     // Logic groups initialization
     logicMap = new Map<string, Logic>() 
@@ -177,8 +176,9 @@ export class Rules<L extends string, T extends string, U> {
             m.logicIdx   = ++this._logicIdx
             m.logicLast  = false
             m.logicApplies = true
-            
-            this.logicMap.get(logicKey)!.initMatch({ key: m.key, group: m.logicGroup, idx: m.logicIdx, logic: m.logic, matched: false, tries: 0, matchCnt: 0 })
+            const logicObj = this.logicMap.get(logicKey)!
+            assert( logicObj !== undefined, `Logic object is undefined for key: ${logicKey}`)
+            logicObj.initMatch({ key: m.key, group: m.logicGroup, idx: m.logicIdx, logic: m.logic, matched: false, tries: 0, matchCnt: 0 })
             this.msg ({
                 oper: 'Create Logic',
                 iMatcher: undefined,
@@ -198,7 +198,9 @@ export class Rules<L extends string, T extends string, U> {
                 this._logicActive = false
                
                 // this.__debug__(`Create Logic for -> ${logicKey}: ${JSON.stringify(this.logicMap.get(logicKey))}`)
-                this.logicMap.get(logicKey)!.initMatch({ key: m.key, group: m.logicGroup, idx: m.logicIdx, logic: m.logic, tries: 0,  matched: false, matchCnt: 0 })
+                const logicObj = this.logicMap.get(logicKey)!
+                assert( logicObj !== undefined, `Logic object is undefined for key: ${logicKey}`)
+                logicObj.initMatch({ key: m.key, group: m.logicGroup, idx: m.logicIdx, logic: m.logic, tries: 0,  matched: false, matchCnt: 0 })
                 this.msg ({
                     oper: 'Create Logic',
                     iMatcher: undefined,

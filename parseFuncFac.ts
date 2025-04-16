@@ -86,13 +86,6 @@ export const parseInit = <L extends string,T extends string ,U>(
                 }
             }
   
-           
-
-            if ( parser.iMatcher.key === 'arrElement')    {
-                const _debugHook = 1
-
-            }
-            
             // Add Match Record to the state
             parser.mRec = matchRecInit(
                         parser as Sealed<ParseFuncScope<L,T,U>, 'eMap' | 'args' | 'iMatcher'> , 
