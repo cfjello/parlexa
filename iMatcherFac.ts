@@ -38,7 +38,7 @@ export const iMatcherFac = <L extends string,T extends string,U>(
             }
             else { // reset
                 iMatcher.regexp = undefined
-                 iMatcher.type = 'non-terminal'
+                iMatcher.type = 'non-terminal'
                 iMatcher.parentId = '__root__'
                 iMatcher.roundTrips = parent ? parent.args.roundTrips : 1
             }
@@ -49,21 +49,32 @@ export const iMatcherFac = <L extends string,T extends string,U>(
             if ( iMatcher.regexp ) iMatcher.regexp.lastIndex = pos
             
             // Get the current token's multi-cardinality
-            if ( ! iMatcher.multi ) {
-                    iMatcher.multi = shared.self.rules.PRMap.get( token )?.multi ?? shared.self.multiDefault
+            if ( token === 'identDeclRHS') {
+                const _debugHook = 1
             }
-            const [min, max] = getMulti( iMatcher.multi )
+          
 
-            iMatcher.key            = token 
+            iMatcher.key            = token     
             iMatcher.idx            = idx
-            iMatcher.min            = min
-            iMatcher.max            = max
+           
           
             iMatcher.keyExt =  iMatcher.parentToken + '.' + iMatcher.key
             iMatcher.roundtripFailed = false
             if ( caller === 'parseExpect' ) {
                 parent.mRec.children.push(iMatcher.id)
             }
+            
+            if ( ! iMatcher.multi) {
+                const multiFetch = shared.self.rules.PRMap.get( token )?.multi
+                if (  ! multiFetch ) {
+                    throw new Error(`iMatcherFac(): multi mising for token '${iMatcher.keyExt}': '${multiFetch}'`)
+                }
+                iMatcher.multi = multiFetch
+            }
+            const [min, max] = getMulti( iMatcher.multi )
+            iMatcher.min            = min
+            iMatcher.max            = max
+        
             iMatcher.level          = parent ? parent.args.level : 1
             iMatcher.offsets        = [ pos ]
             iMatcher.matchCnt       = 0 

@@ -11,13 +11,15 @@ import { InternMatcherSealed } from "./types.ts";
 import { InternMatcherExt } from "./types.ts";
 import { _ } from "./lodash.ts";
 import { callerIM } from "./types.ts";
+import { assert } from "./imports.ts";
 
 export const parseFuncInit = <L extends string,T extends string,U>( 
     token:  T,
     caller: callerIM,
     shared:      ParserSharedScope<L,T,U>, 
     parent: ParseFuncScope<L,T,U> | undefined,
-    hasIMatcher: boolean,
+    // hasIMatcher: boolean,
+    iMatcherId: string,
     roundTrips = 1
     ): ParseFuncScope<L,T,U>  => {
         try {
@@ -33,7 +35,7 @@ export const parseFuncInit = <L extends string,T extends string,U>(
                 breaks:         parent?.args.breaks.slice() ?? []
             } satisfies ParseArgs<T>
             
-            const s = parseInit( args, shared, parent, hasIMatcher )
+            const s = parseInit( args, shared, parent, iMatcherId )
             return s
         }
         catch (err) { 
@@ -46,22 +48,24 @@ export const parseInit = <L extends string,T extends string ,U>(
     args:   ParseArgs<T>,
     shared: ParserSharedScope<L,T,U>, 
     parent: ParseFuncScope<L,T,U> | undefined = undefined,
-    hasIMatcher: boolean
+    iMatcherId: string
     ): Sealed<ParseFuncScope<L,T,U>, 'eMap' | 'mRec' | 'iMatcher' | 'logic'>  => {
         // Initialize
         const parser: Partial<ParseFuncScope<L,T,U>> = { args: args }
         try {
             // Get the ExpectMap for the token
             if ( ! shared.self.rules.PRMap.has(args.token) ) throw new Error(`parseInit(): Unknown parser token: '${args.token}'`)
+            
             parser.eMap = shared.self.rules.PRMap.get(args.token)! satisfies ExpectMap<T,U>
        
             // create the result match record for the token  
-            if ( parent && hasIMatcher) {
-                parser.iMatcher = parent!.matchers[args.parentIdx] 
+            if ( iMatcherId !== '__undef__') {
+                // parser.iMatcher = parent!.matchers[args.parentIdx] 
+                parser.iMatcher = shared.self.iMatchers.get(iMatcherId) as InternMatcherSealed<T,U>
             }
             else {
                 parser.iMatcher = iMatcherFac( 
-                    parent ? args.caller: 'reset', 
+                    parent ? args.caller : 'reset', 
                     parent as Sealed<ParseFuncScope<L,T,U>, 'eMap' | 'args'>, 
                     -1, 
                     shared, 
@@ -69,6 +73,7 @@ export const parseInit = <L extends string,T extends string ,U>(
                 )
             }
             parser.iMatcher.roundTrips = args.roundTrips
+            assert(args.token === parser.iMatcher.key, `parseInit(): token '${args.token}' does not match iMatcher key '${parser.iMatcher.key}'`)
 
             // Add Logic object to the state
             if ( ! shared.self.rules.logicMap.has(args.token) ) {

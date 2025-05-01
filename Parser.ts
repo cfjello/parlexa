@@ -84,9 +84,10 @@ export class Parser<L extends string, T extends string, U = unknown> {
     topNode: string | undefined = undefined
     topToken: T | undefined
 
-    // The Parser Result map
-    result      =  new Map<string, MatchRecordExt<T>>()
-    reverseIdx  =  [] as string[]
+    // The Parser maps
+    iMatchers   = new Map<string, InternMatcher<T,U>>()
+    result      = new Map<string, MatchRecordExt<T>>()
+    reverseIdx  = [] as string[]
 
     constructor( 
         public LR: LexerRules<L,U>,  
@@ -116,6 +117,7 @@ export class Parser<L extends string, T extends string, U = unknown> {
         if ( this.shared.inclAlwaysInDebug || ! iMatcher ) return false
         return ( iMatcher.key === this.shared.always || iMatcher.keyExt?.startsWith(this.shared.always + '.') )
     }
+    // deno-lint-ignore no-explicit-any
     isImatcherWS( iMatcher: any  ): boolean {
         if ( this.shared.inclAlwaysInDebug ) return false
         return ( iMatcher.key === this.shared.always || iMatcher.keyExt?.startsWith(this.shared.always + '.') )
@@ -140,7 +142,7 @@ export class Parser<L extends string, T extends string, U = unknown> {
                 throw Error(`reset(): The always token '${this.always}' is not defined in the parser rules`)
             }
             this._debugger.reset()
-            this.parse( this.initState, undefined )
+            this.parse( this.initState, 'reset', undefined,false, 1 )
         }
         catch(err) {
             console.error(err)
@@ -153,7 +155,7 @@ export class Parser<L extends string, T extends string, U = unknown> {
         token: T, 
         caller: callerIM = 'parse',
         parent:  ParseFuncScope<L,T,U> | undefined = undefined ,
-        hasIMatcher = true,
+        iMatcherId = '__undef__',
         roundTrips = 1,
     ): retValuesT {
        
@@ -171,7 +173,8 @@ export class Parser<L extends string, T extends string, U = unknown> {
                 token, caller, 
                 this.shared, 
                 parent, 
-                hasIMatcher,
+                // hasIMatcher,
+                iMatcherId
             ) satisfies Sealed<ParseFuncScope<L,T,U>, 'eMap' | 'mRec' | 'iMatcher' | 'logic'>
 
             this.reverseIdx.push(parser.iMatcher.id)
@@ -222,6 +225,10 @@ export class Parser<L extends string, T extends string, U = unknown> {
                     // s.iMatcher.matchCnt += 1
                     // s.mRec.matchCnt = s.iMatcher.matchCnt
                     // s.iMatcher.retry = ( s.args.roundTrips < s.iMatcher.max  ) 
+                }
+
+                if ( token === 'identDeclRHS') {
+                    const _debugHook = 1
                 }
               
                 // Call recursively on retry
@@ -827,6 +834,7 @@ export class Parser<L extends string, T extends string, U = unknown> {
                 _lastEntry = ( idx === expectLen ) 
                 if ( this.isEOF() ) return false
                 
+                // Buid the internal matcher object
                 const iMatcherRaw = _.cloneDeep(_iMatcher) satisfies InternMatcher<T,U>
                 assert( iMatcherRaw !== undefined, `eMap.expect.every(): Undefined iMatcher in 'expect array'`)
                 assert((iMatcherRaw.key !== parser.args.token || idx > 0), Colors.red(`Left recursive reference: ${iMatcherRaw.key} to own parent token position 0` ))
@@ -841,7 +849,8 @@ export class Parser<L extends string, T extends string, U = unknown> {
                 ) satisfies InternMatcherExt<T,U>
 
                 parser.matchers.push(iMatcher)
-
+                // this.iMatchers.set(iMatcher.id, iMatcher)
+                
                 // Check for startOn on idx 0 and subsequent idx > 0 that belong to the same initial logic group
                 firstLogicGroup = firstLogicGroup  || ( idx === 0 && iMatcher.logicApplies ) 
 
@@ -925,19 +934,21 @@ export class Parser<L extends string, T extends string, U = unknown> {
                             iMatcher.matchCnt <= iMatcher.max 
                     ) {
                         xorGroup[ iMatcher.logicGroup ] = true
-
                     }
                 }
                 else  {
                     // Handle NON-TERMINAL SYMBOLS
-                    this.parse( iMatcher.key as T, 'parseExpect', parser, true, 1)
-
+                    const parseRes = this.parse( iMatcher.key as T, 'parseExpect', parser, true, 1)
+                    if ( parseRes === 'branchMatched' ) {
+                        parser.iMatcher.matched = true
+                        parser.iMatcher.setStatus('branchMatched', '')
+                    }
                     if ( iMatcher.logicApplies ?? false ) parser.logic[iMatcher.roundTrips].setIMatch( iMatcher, iMatcher.matched )
-                    
-                        if (    iMatcher.logic === 'xor' && 
-                            iMatcher.matched && 
-                            iMatcher.matchCnt >= iMatcher.min && 
-                            iMatcher.matchCnt <= iMatcher.max 
+                    // Handle optimistic parsing of XOR groups
+                    if (iMatcher.logic === 'xor' && 
+                        iMatcher.matched && 
+                        iMatcher.matchCnt >= iMatcher.min && 
+                        iMatcher.matchCnt <= iMatcher.max 
                     ) {
                         xorGroup[ iMatcher.logicGroup ] = true
                         parser.logic[iMatcher.roundTrips].setIMatch(iMatcher, true)
