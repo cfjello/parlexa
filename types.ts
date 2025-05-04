@@ -251,6 +251,8 @@ export type ParseFuncScope<L extends string, T extends string, U = unknown> = {
     breaks:     Array<RegExp>, 
     starts:     Array<RegExp>, 
     matchers:   Array<InternMatcherSealed<T,U>>,
+    iMatchers:  Map<string, InternMatcher<T,U>>
+    result:     Map<string, MatchRecordExt<T>>
 }
 
 export const retValues = [ 
